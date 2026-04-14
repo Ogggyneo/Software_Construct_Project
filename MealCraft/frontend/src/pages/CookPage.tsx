@@ -9,10 +9,10 @@ import {
     CheckCircle,
     Warning,
 } from "@phosphor-icons/react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../components/ui/badge";
 import BottomNav from "../components/BottomNav";
 import Footer from "../components/Footer";
-import { recipes, popularIngredients } from "../data/recipes";
+import { recipes, popularIngredients } from "../data/recipe";
 
 const CookPage: React.FC = () => {
     const navigate = useNavigate();
