@@ -1,0 +1,4 @@
+node_modules
+.env
+#auto detect text 
+* text=auto
