@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { ChevronRight, Search, Zap } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -38,6 +38,16 @@ export function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const { mode } = useMode();
+  const [backendMsg, setBackendMsg] = useState('');
+  useEffect(() => {
+  fetch('/api/test')
+    .then(res => res.json())
+    .then(data => {
+      console.log(data);
+      setBackendMsg(data.message);
+    })
+    .catch(err => console.error(err));
+}, []);
 
   if (mode === 'web') {
     return (
@@ -52,6 +62,7 @@ export function Home() {
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Xin chào, Minh!</p>
+                  <p>{backendMsg}</p>
                   <h2 className="text-3xl font-bold">
                     Bạn muốn ăn gì <span className="text-green-500">hôm nay?</span>
                   </h2>
