@@ -9,7 +9,7 @@ export function Login() {
   const [email, setEmail] = useState('demo@mealcraft.com');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = (e: React.SubmitEvent) => {
     e.preventDefault();
     // Mock login - navigate to home
     navigate('/');
