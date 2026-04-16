@@ -10,7 +10,7 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = (e: any) => {
     e.preventDefault();
     // Mock register - navigate to home
     navigate('/');

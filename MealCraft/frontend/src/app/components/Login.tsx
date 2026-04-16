@@ -6,19 +6,16 @@ import { useNavigate } from 'react-router-dom';
 
 export function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('demo@mealcraft.com');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = (e: any) => {
     e.preventDefault();
-    // Mock login - navigate to home
-    if(!email || !password) {
-      alert('Vui lòng nhập email và mật khẩu');
-      return;
-    }
-    localStorage.setItem("isAuth", "true");
+    // Mock register - navigate to home
     navigate('/');
   };
+
 
   return (
     <div className="min-h-full bg-white px-6 py-8 flex flex-col">

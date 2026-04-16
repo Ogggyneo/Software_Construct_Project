@@ -5,37 +5,38 @@ import { IngredientFinder } from "./components/IngredientFinder";
 import { GroupChat } from "./components/GroupChat";
 import { OrderFood } from "./components/OrderFood";
 import { Login } from "./components/Login";
-import { Register } from "./components/Register";
+//import { Register } from "./components/Register";
 import { MealDetail } from "./components/MealDetail";
 import { ComingSoon } from "./components/CommingSoon";
-import {ProtectedRoute} from "./components/ProtectedRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
     path: "/login",
-    Component: Login,
+    element: <Login />, 
   },
-  {
-    path: "/register",
-    Component: Register,
-  },
+  // {
+  //   path: "/register",
+  //   element: <Register />, 
+  // },
   {
     path: "/meal-detail",
-    Component: MealDetail,
+    element: <MealDetail />, 
   },
   {
     element: <ProtectedRoute />,
     children: [
       {
-          path: "/",
-          Component: Layout,
-          children: [
-            { index: true, Component: Home },
-            { path: "ingredients", Component: IngredientFinder },
-            { path: "order-food", Component: OrderFood },
-            { path: "group-chat", Component: GroupChat },
-            { path: "coming-soon", Component: ComingSoon },
-          ],
-      }],
+        path: "/",
+        element: <Layout />, 
+        children: [
+          { index: true, element: <Home /> },
+          { path: "ingredients", element: <IngredientFinder /> },
+          { path: "order-food", element: <OrderFood /> },
+          { path: "group-chat", element: <GroupChat /> },
+          { path: "coming-soon", element: <ComingSoon /> },
+        ],
+      },
+    ],
   },
 ]);

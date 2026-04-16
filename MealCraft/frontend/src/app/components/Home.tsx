@@ -3,8 +3,9 @@ import { Card } from './ui/card';
 import { ChevronRight, Search, Zap } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
+import { Login } from './Login';
 
 const suggestedDishes = [
   {
@@ -62,8 +63,8 @@ export function Home() {
                   <Zap className="w-7 h-7 text-white fill-white" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">Xin chào, Minh!</p>
-                  <p>{backendMsg}</p>
+                  <p className="text-gray-500 text-sm">Xin chào, {Login.name}!</p>
+                  {/* <p>{backendMsg}</p> */}
                   <h2 className="text-3xl font-bold">
                     Bạn muốn ăn gì <span className="text-green-500">hôm nay?</span>
                   </h2>
