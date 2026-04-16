@@ -1,7 +1,7 @@
 import { Button } from './ui/button';
 import { ChevronLeft, Heart, Clock, Users } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 interface MealDetailProps {
   id?: string;

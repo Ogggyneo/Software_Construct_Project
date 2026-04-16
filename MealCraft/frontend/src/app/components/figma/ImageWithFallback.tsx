@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-const DEFAULT_FALLBACK = '/images/default.jpg'; // put this in public/images
+const API_URL = "http://localhost:5000";
+const DEFAULT_FALLBACK = `${API_URL}/images/default.jpg`;
 
 export function ImageWithFallback({
   src,
@@ -10,19 +11,24 @@ export function ImageWithFallback({
 }: React.ImgHTMLAttributes<HTMLImageElement> & {
   fallbackSrc?: string;
 }) {
-  const [imgSrc, setImgSrc] = useState(src);
+  const [imgSrc, setImgSrc] = useState<string | undefined>(src);
 
-  // Reset image if src changes
+  // Update when src changes
   useEffect(() => {
-    setImgSrc(src);
-  }, [src]);
+    if (src) {
+      setImgSrc(src);
+    } else {
+      setImgSrc(fallbackSrc);
+    }
+  }, [src, fallbackSrc]);
 
   return (
     <img
-      src={imgSrc || fallbackSrc}
-      alt={alt}
+      src={imgSrc}
+      alt={alt || "image"}
       {...props}
       onError={() => {
+        // prevent infinite loop
         if (imgSrc !== fallbackSrc) {
           setImgSrc(fallbackSrc);
         }

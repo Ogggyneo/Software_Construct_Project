@@ -5,7 +5,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useNavigate } from 'react-router';
 import { useMode } from '../contexts/ModeContext';
-import {Login} from './Login';
+
 const suggestedDishes = [
   {
     id: 1,
@@ -51,7 +51,7 @@ export function Home() {
                   <Zap className="w-7 h-7 text-white fill-white" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">Xin chào, {Login.mail}</p>
+                  <p className="text-gray-500 text-sm">Xin chào, Minh!</p>
                   <h2 className="text-3xl font-bold">
                     Bạn muốn ăn gì <span className="text-green-500">hôm nay?</span>
                   </h2>
