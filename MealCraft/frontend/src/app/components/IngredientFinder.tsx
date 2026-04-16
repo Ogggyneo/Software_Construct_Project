@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 import { X, Plus, Filter, Clock, ChevronDown, ChefHat } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
 
 const commonIngredients = [
