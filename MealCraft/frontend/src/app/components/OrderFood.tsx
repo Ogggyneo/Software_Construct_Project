@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // For navigation to group chat and coming soon pages
+import { useNavigate } from 'react-router'; // For navigation to group chat and coming soon pages
 import { 
   MapPin, 
   Clock, 

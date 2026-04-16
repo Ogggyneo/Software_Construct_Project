@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card } from './ui/card';
 import { ChevronRight, Search, Zap } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useMode } from '../contexts/ModeContext';
-import { Login } from './Login';
-
+import {Login} from './Login';
 const suggestedDishes = [
   {
     id: 1,
@@ -26,7 +25,6 @@ const suggestedDishes = [
   },
 ];
 
-
 const dishes = [
   { name: 'Phở Bò Tái Lăn', category: 'Asian', image: 'vietnamese beef pho' },
   { name: 'Sushi Cá Hồi Tươi', category: 'Japanese', image: 'fresh salmon sushi' },
@@ -40,6 +38,7 @@ export function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const { mode } = useMode();
+
   if (mode === 'web') {
     return (
       <div className="pb-8 bg-white">
@@ -52,8 +51,7 @@ export function Home() {
                   <Zap className="w-7 h-7 text-white fill-white" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">Xin chào, bạn!</p>
-                  {/* <p>{backendMsg}</p> */}
+                  <p className="text-gray-500 text-sm">Xin chào, {Login.mail}</p>
                   <h2 className="text-3xl font-bold">
                     Bạn muốn ăn gì <span className="text-green-500">hôm nay?</span>
                   </h2>

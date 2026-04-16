@@ -1,12 +1,17 @@
-// src/components/ProtectedRoute.tsx
-import { Navigate, Outlet } from 'react-router-dom'; // Use react-router-dom
+import { Navigate } from 'react-router';
+import { useAuth } from '../contexts/AuthContext';
+import { ReactNode } from 'react';
 
-export function ProtectedRoute() {
-  const isAuthenticated = localStorage.getItem('isAuth') === 'true';
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return <>{children}</>;
 }
