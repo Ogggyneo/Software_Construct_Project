@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, ChefHat, ShoppingBag } from 'lucide-react';
 import { useMode } from '../contexts/ModeContext';
 

@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { Home } from "./components/Home";
 import { IngredientFinder } from "./components/IngredientFinder";
@@ -8,6 +8,7 @@ import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 import { MealDetail } from "./components/MealDetail";
 import { ComingSoon } from "./components/CommingSoon";
+import {ProtectedRoute} from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -23,14 +24,18 @@ export const router = createBrowserRouter([
     Component: MealDetail,
   },
   {
-    path: "/",
-    Component: Layout,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, Component: Home },
-      { path: "ingredients", Component: IngredientFinder },
-      { path: "order-food", Component: OrderFood },
-      { path: "group-chat", Component: GroupChat },
-      { path: "coming-soon", Component: ComingSoon },
-    ],
+      {
+          path: "/",
+          Component: Layout,
+          children: [
+            { index: true, Component: Home },
+            { path: "ingredients", Component: IngredientFinder },
+            { path: "order-food", Component: OrderFood },
+            { path: "group-chat", Component: GroupChat },
+            { path: "coming-soon", Component: ComingSoon },
+          ],
+      }],
   },
 ]);

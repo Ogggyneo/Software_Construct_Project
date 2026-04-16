@@ -2,16 +2,21 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Zap, Mail, Lock, CheckCircle, Apple } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
 export function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('demo@mealcraft.com');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.SubmitEvent) => {
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Mock login - navigate to home
+    if(!email || !password) {
+      alert('Vui lòng nhập email và mật khẩu');
+      return;
+    }
+    localStorage.setItem("isAuth", "true");
     navigate('/');
   };
 

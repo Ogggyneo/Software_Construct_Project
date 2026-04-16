@@ -1,26 +1,41 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { 
+  MapPin, 
+  Clock, 
+  Filter, 
+  Zap, 
+  ChevronRight, 
+  Plus 
+} from 'lucide-react';
+
+// UI Components
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { Avatar, AvatarFallback } from './ui/avatar';
-// Added Plus icon
-import { MapPin, Clock, Filter, Zap, ChevronRight, Plus } from 'lucide-react'; 
-import { useNavigate } from 'react-router';
+
+// Context and Data
 import { useMode } from '../contexts/ModeContext';
 import { availableGroups } from './data/FoodGroup';
 
 export function OrderFood() {
   const navigate = useNavigate();
+  
+  // Search Form State
   const [location, setLocation] = useState('');
   const [time, setTime] = useState('');
   const [preference, setPreference] = useState('');
+  
+  // Mode (web vs mobile) from context
   const { mode } = useMode();
 
-  // Function to handle "Coming Soon"
+  // Function to handle "Coming Soon" for group creation
   const handleCreateGroup = () => {
     navigate('/coming-soon');
   };
 
+  // --- WEB VIEW ---
   if (mode === 'web') {
     return (
       <div className="pb-8 bg-white min-h-full">
@@ -35,7 +50,6 @@ export function OrderFood() {
                 <h2 className="text-3xl font-bold">Đặt món nhóm</h2>
               </div>
               <div className="flex items-center gap-3">
-                {/* Web Create Button in Header */}
                 <Button 
                   onClick={handleCreateGroup}
                   variant="outline" 
@@ -62,7 +76,6 @@ export function OrderFood() {
                   Nhập thông tin để tìm những người đang cùng đặt món tại khu vực của bạn.
                 </p>
 
-                {/* Inputs remain same... */}
                 <div className="mb-4">
                   <p className="text-sm font-medium mb-3">Vị trí của bạn</p>
                   <div className="relative">
@@ -99,7 +112,6 @@ export function OrderFood() {
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div className="space-y-3">
                   <Button className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl py-6 font-semibold text-base">
                     Tìm nhóm ngay
@@ -179,7 +191,7 @@ export function OrderFood() {
     );
   }
 
-  // MOBILE VIEW
+  // --- MOBILE VIEW ---
   return (
     <div className="pb-4 bg-white min-h-full">
       {/* Header */}
@@ -191,7 +203,6 @@ export function OrderFood() {
           <h2 className="text-lg font-bold">Đặt món nhóm</h2>
         </div>
         <div className="flex items-center gap-2">
-          {/* Mobile Create Group Icon Button */}
           <Button 
             onClick={handleCreateGroup}
             variant="outline" 
@@ -211,7 +222,6 @@ export function OrderFood() {
           Nhập thông tin để tìm những người đang cùng đặt món tại khu vực của bạn.
         </p>
 
-        {/* Inputs remain same... */}
         <div className="mb-3">
           <p className="text-sm font-medium mb-2">Vị trí của bạn</p>
           <div className="relative">
@@ -249,7 +259,6 @@ export function OrderFood() {
           </div>
         </div>
 
-        {/* Search and Create Buttons for Mobile */}
         <div className="flex flex-col gap-2">
           <Button className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl py-6 font-semibold">
             Tìm nhóm ngay
@@ -264,7 +273,7 @@ export function OrderFood() {
         </div>
       </div>
 
-      {/* Available Groups remain same... */}
+      {/* Available Groups List */}
       <div className="px-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg">Các nhóm đang chờ</h3>
