@@ -24,22 +24,20 @@ export function ModeWrapper({ children }: ModeWrapperProps) {
         <div className="flex gap-2">
           <button
             onClick={() => setMode('web')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
-              mode === 'web'
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${mode === 'web'
                 ? 'bg-primary text-primary-foreground shadow-md'
                 : 'bg-transparent text-muted-foreground hover:bg-muted'
-            }`}
+              }`}
           >
             <Monitor className="w-4 h-4" />
             <span className="font-medium">Web</span>
           </button>
           <button
             onClick={() => setMode('mobile')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
-              mode === 'mobile'
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${mode === 'mobile'
                 ? 'bg-secondary text-secondary-foreground shadow-md'
                 : 'bg-transparent text-muted-foreground hover:bg-muted'
-            }`}
+              }`}
           >
             <Smartphone className="w-4 h-4" />
             <span className="font-medium">App</span>
@@ -50,11 +48,10 @@ export function ModeWrapper({ children }: ModeWrapperProps) {
       {/* Demo Container */}
       <div className="flex items-center justify-center min-h-screen p-8 pt-28">
         <div
-          className={`bg-white shadow-2xl transition-all duration-700 ease-in-out overflow-hidden ${
-            mode === 'web'
+          className={`bg-white shadow-2xl transition-all duration-700 ease-in-out overflow-y-auto overflow-x-hidden ${mode === 'web'
               ? 'w-full max-w-7xl h-[calc(100vh-8rem)] rounded-2xl'
               : 'w-full max-w-md h-[calc(100vh-8rem)] rounded-[3rem] border-[14px] border-gray-800'
-          }`}
+            }`}
           style={{
             transform: mode === 'mobile' ? 'scale(1)' : 'scale(1)',
           }}

@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { Home } from "./components/Home";
 import { IngredientFinder } from "./components/IngredientFinder";
@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-  
+
   {
     path: "/home",
     element: (

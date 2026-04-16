@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Zap, ChevronLeft, Bell, Hammer, UtensilsCrossed } from 'lucide-react';
@@ -12,7 +12,7 @@ export function ComingSoon() {
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header / Navigation */}
       <div className={`px-6 py-4 flex items-center border-b bg-white sticky top-0 z-10 ${mode === 'web' ? 'px-12 py-6' : ''}`}>
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-2"
         >
@@ -42,7 +42,7 @@ export function ComingSoon() {
         <h1 className={`font-black text-gray-900 mb-4 ${mode === 'web' ? 'text-5xl' : 'text-3xl'}`}>
           Tính năng đang được <span className="text-green-500">chuẩn bị!</span>
         </h1>
-        
+
         <p className={`text-gray-500 mb-10 max-w-md mx-auto ${mode === 'web' ? 'text-lg' : 'text-base'}`}>
           Chúng tôi đang nỗ lực hoàn thiện tính năng <strong>Tạo nhóm mới</strong> để giúp bạn đặt món cùng đồng nghiệp dễ dàng hơn. Hãy quay lại sau nhé!
         </p>
@@ -53,11 +53,11 @@ export function ComingSoon() {
             <Bell className="w-5 h-5 text-green-600" />
             <span className="font-semibold text-gray-700">Nhận thông báo khi ra mắt</span>
           </div>
-          
+
           <div className="flex flex-col gap-3">
-            <Input 
-              type="email" 
-              placeholder="Nhập email của bạn..." 
+            <Input
+              type="email"
+              placeholder="Nhập email của bạn..."
               className="bg-white border-gray-200 py-6 rounded-xl focus:ring-green-500"
             />
             <Button className="bg-green-500 hover:bg-green-600 text-white py-6 rounded-xl font-bold transition-all transform hover:scale-[1.02]">
@@ -67,7 +67,7 @@ export function ComingSoon() {
         </div>
 
         {/* Back Button */}
-        <button 
+        <button
           onClick={() => navigate('/order-food')}
           className="mt-8 text-gray-500 font-medium hover:text-green-600 transition-colors flex items-center gap-2"
         >

@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, ChefHat, ShoppingBag } from 'lucide-react';
 import { useMode } from '../contexts/ModeContext';
 
@@ -25,11 +25,10 @@ export function Layout() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                    isActive
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${isActive
                       ? 'text-green-500 bg-green-50'
                       : 'text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
@@ -64,11 +63,10 @@ export function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                  isActive
+                className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${isActive
                     ? 'text-green-500'
                     : 'text-gray-400'
-                }`}
+                  }`}
               >
                 <Icon className="w-6 h-6" />
                 <span className="text-xs font-medium">{item.label}</span>

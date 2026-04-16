@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 import { X, Plus, Filter, Clock, ChevronDown, ChefHat } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
 
 const commonIngredients = [
@@ -71,7 +71,7 @@ export function IngredientFinder() {
   useEffect(() => {
     if (inputValue.trim().length > 0) {
       const filtered = commonIngredients.filter(
-        (ing) => 
+        (ing) =>
           ing.toLowerCase().includes(inputValue.toLowerCase()) &&
           !ingredients.includes(ing)
       );
@@ -90,7 +90,7 @@ export function IngredientFinder() {
       setInputValue('');
       setSuggestions([]);
       setShowSuggestions(false);
-      
+
       // Auto search when ingredients are added
       setTimeout(() => findRecipes([...ingredients, normalizedIngredient]), 100);
     }
@@ -99,7 +99,7 @@ export function IngredientFinder() {
   const removeIngredient = (ingredient: string) => {
     const newIngredients = ingredients.filter((i) => i !== ingredient);
     setIngredients(newIngredients);
-    
+
     // Auto search when ingredients are removed
     if (newIngredients.length > 0) {
       setTimeout(() => findRecipes(newIngredients), 100);
@@ -121,15 +121,15 @@ export function IngredientFinder() {
 
     const recipesWithScore = recipeDatabase.map((recipe) => {
       const matchedIngredients = recipe.ingredients.filter((ing) =>
-        ingredientsList.some((userIng) => 
-          ing.toLowerCase().includes(userIng) || 
+        ingredientsList.some((userIng) =>
+          ing.toLowerCase().includes(userIng) ||
           userIng.includes(ing.toLowerCase())
         )
       );
-      
+
       const needToBuy = recipe.ingredients.filter(
-        (ing) => !ingredientsList.some((userIng) => 
-          ing.toLowerCase().includes(userIng) || 
+        (ing) => !ingredientsList.some((userIng) =>
+          ing.toLowerCase().includes(userIng) ||
           userIng.includes(ing.toLowerCase())
         )
       );
@@ -358,7 +358,7 @@ export function IngredientFinder() {
       {/* Search Section */}
       <div className="px-4 pt-6">
         <h3 className="font-bold text-lg mb-4">Bạn có gì trong tủ lạnh?</h3>
-        
+
         {/* Search Input */}
         <div className="relative mb-3">
           <Input
@@ -381,7 +381,7 @@ export function IngredientFinder() {
             }}
             className="pl-4 pr-4 py-3 text-sm border-gray-300 rounded-lg"
           />
-          
+
           {showSuggestions && suggestions.length > 0 && (
             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
               {suggestions.map((suggestion, index) => (
@@ -403,8 +403,8 @@ export function IngredientFinder() {
             <>
               <div className="flex flex-wrap gap-2 flex-1">
                 {ingredients.map((ingredient) => (
-                  <Badge 
-                    key={ingredient} 
+                  <Badge
+                    key={ingredient}
                     className="px-3 py-1.5 bg-green-100 text-green-700 border-green-200 hover:bg-green-200 rounded-full"
                   >
                     {ingredient}
@@ -479,7 +479,7 @@ export function IngredientFinder() {
                     <div>
                       <h4 className="font-bold text-sm mb-1">{recipe.name}</h4>
                       <p className="text-xs text-gray-500 mb-2">{recipe.description}</p>
-                      
+
                       {/* Ingredients icons */}
                       <div className="flex items-center gap-1 mb-2">
                         {recipe.matchedIngredients.slice(0, 3).map((ing: string, idx: number) => (
