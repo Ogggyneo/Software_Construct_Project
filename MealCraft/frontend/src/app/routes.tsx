@@ -8,6 +8,7 @@ import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 import { MealDetail } from "./components/MealDetail";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ComingSoon } from "./components/CommingSoon";
 
 export const router = createBrowserRouter([
   {
@@ -16,11 +17,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    Component: Login,
+    element: <Login />,
   },
   {
     path: "/register",
-    Component: Register,
+    element: <Register />,
   },
   {
     path: "/meal-detail",
@@ -31,6 +32,15 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/coming-soon",
+    element: (
+      <ProtectedRoute>
+        <ComingSoon />
+      </ProtectedRoute>
+    ),
+  },
+  
+  {
     path: "/home",
     element: (
       <ProtectedRoute>
@@ -38,10 +48,22 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, Component: Home },
-      { path: "ingredients", Component: IngredientFinder },
-      { path: "order-food", Component: OrderFood },
-      { path: "group-chat", Component: GroupChat },
+      { index: true, element: <Home /> },
+      { path: "ingredients", element: <IngredientFinder /> },
+      { path: "order-food", element: <OrderFood /> },
+      { path: "group-chat", element: <GroupChat /> },
+
+      // ✅ FIXED
+      { path: "coming-soon", element: <Navigate to="../group-chat" replace /> },
     ],
+  },
+
+  {
+    path: "/group-chat",
+    element: (
+      <ProtectedRoute>
+        <GroupChat />
+      </ProtectedRoute>
+    ),
   },
 ]);
