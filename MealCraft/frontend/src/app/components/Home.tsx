@@ -40,17 +40,6 @@ export function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const { mode } = useMode();
-  const [backendMsg, setBackendMsg] = useState('');
-  useEffect(() => {
-  fetch('/api/test')
-    .then(res => res.json())
-    .then(data => {
-      console.log(data);
-      setBackendMsg(data.message);
-    })
-    .catch(err => console.error(err));
-}, []);
-
   if (mode === 'web') {
     return (
       <div className="pb-8 bg-white">

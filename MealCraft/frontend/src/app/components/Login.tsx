@@ -1,37 +1,57 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Zap, Mail, Lock, CheckCircle, Apple } from 'lucide-react';
+import { Zap, Mail, Lock, CheckCircle, Apple, Loader2 } from 'lucide-react'; // Added Loader2
 import { useNavigate } from 'react-router-dom';
 
 export function Login() {
   const navigate = useNavigate();
   
-  // Removed 'name' as it's not needed for Login (only for Register)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // New: Loading state
+  const [error, setError] = useState<string | null>(null); // New: Error state
 
-  // FIX: Use the modern React.FormEvent with a generic <HTMLFormElement>
-  // This is the industry standard for React 18+ and TypeScript
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  // Validate email format for the CheckCircle icon
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const handleLogin = async (e: React.SyntheticEvent) => {
     e.preventDefault();
+    setError(null);
+    setIsLoading(true);
 
-    // 1. Basic Validation
     if (!email || !password) {
-      alert('Vui lòng nhập đầy đủ email và mật khẩu');
+      setError("Vui lòng nhập đầy đủ thông tin");
+      setIsLoading(false);
       return;
     }
 
-    // 2. MOCK AUTHENTICATION
-    // This is the critical part: we must set the flag that ProtectedRoute looks for
-    localStorage.setItem("isAuth", "true");
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // 3. Navigate to home
-    navigate('/');
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        localStorage.setItem("isAuth", "true");
+        localStorage.setItem("user", JSON.stringify(data.user));
+        navigate('/');
+      } else {
+        setError(data.message || "Email hoặc mật khẩu không đúng");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Đã xảy ra lỗi kết nối. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-full bg-white px-6 py-8 flex flex-col">
+    <div className="min-h-screen bg-white px-6 py-8 flex flex-col max-w-md mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-2">
@@ -51,7 +71,7 @@ export function Login() {
           <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center">
             <Zap className="w-12 h-12 text-white fill-white" />
           </div>
-          <div className="absolute -top-1 right-8 w-4 h-4 bg-green-500 rounded-full" />
+          <div className="absolute -top-1 right-8 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
         </div>
       </div>
 
@@ -76,6 +96,13 @@ export function Login() {
         </button>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl text-center font-medium">
+          {error}
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleLogin} className="space-y-4 mb-6">
         <div>
@@ -87,10 +114,10 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="demo@mealcraft.com"
-              className="pl-12 pr-12 py-6 border-2 border-green-500 rounded-2xl text-sm"
+              className="pl-12 pr-12 py-6 border-2 border-green-500 rounded-2xl text-sm focus-visible:ring-green-500"
               required
             />
-            {email && (
+            {isEmailValid && (
               <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
             )}
           </div>
@@ -105,12 +132,12 @@ export function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Nhập mật khẩu của bạn"
-              className="pl-12 pr-4 py-6 border-2 border-gray-200 rounded-2xl text-sm"
+              className="pl-12 pr-4 py-6 border-2 border-gray-200 rounded-2xl text-sm focus-visible:ring-green-500"
               required
             />
           </div>
           <div className="flex justify-end mt-2">
-            <button type="button" className="text-sm text-green-500 font-medium">
+            <button type="button" className="text-sm text-green-500 font-medium hover:underline">
               Quên mật khẩu?
             </button>
           </div>
@@ -118,9 +145,14 @@ export function Login() {
 
         <Button
           type="submit"
-          className="w-full bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl text-base font-semibold"
+          disabled={isLoading}
+          className="w-full bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl text-base font-semibold transition-all"
         >
-          Đăng nhập ngay →
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            "Đăng nhập ngay →"
+          )}
         </Button>
       </form>
 
@@ -140,12 +172,7 @@ export function Login() {
           variant="outline"
           className="py-6 rounded-2xl border-2 border-gray-200 hover:bg-gray-50"
         >
-          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-          </svg>
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5 mr-2" alt="Google" />
           Google
         </Button>
         <Button
@@ -175,10 +202,10 @@ export function Login() {
       </div>
 
       {/* Footer */}
-      <p className="text-xs text-gray-500 text-center leading-relaxed">
+      <p className="text-xs text-gray-500 text-center leading-relaxed mt-auto">
         Bằng việc tiếp tục, bạn đồng ý tuân thủ{' '}
-        <button className="font-semibold text-gray-700">Điều khoản</button> và{' '}
-        <button className="font-semibold text-gray-700">Chính sách bảo mật</button> của{' '}
+        <button className="font-semibold text-gray-700 hover:underline">Điều khoản</button> và{' '}
+        <button className="font-semibold text-gray-700 hover:underline">Chính sách bảo mật</button> của{' '}
         <span className="text-green-500 font-semibold">MealCraft</span>.
       </p>
     </div>
