@@ -25,6 +25,7 @@ const suggestedDishes = [
   },
 ];
 
+
 const dishes = [
   { name: 'Phở Bò Tái Lăn', category: 'Asian', image: 'vietnamese beef pho' },
   { name: 'Sushi Cá Hồi Tươi', category: 'Japanese', image: 'fresh salmon sushi' },
