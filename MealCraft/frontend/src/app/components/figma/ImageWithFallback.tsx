@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
 
-const DEFAULT_FALLBACK = '/images/default.jpg'; // put this in public/images
+/* =========================
+   ✅ EXPORT THIS
+========================= */
+export const getImageUrl = (src?: string) => {
+  if (!src) return "/images/default.jpg";
+
+  // Full URL (keep)
+  if (src.startsWith("http")) return src;
+
+  // Already correct path
+  if (src.startsWith("/images")) return src;
+
+  // If already has extension
+  if (src.includes(".")) return `/images/${src}`;
+
+  // Treat as ID
+  return `/images/${src}.jpg`;
+};
+
+const DEFAULT_FALLBACK = "/images/default.jpg";
 
 export function ImageWithFallback({
   src,
@@ -10,17 +29,16 @@ export function ImageWithFallback({
 }: React.ImgHTMLAttributes<HTMLImageElement> & {
   fallbackSrc?: string;
 }) {
-  const [imgSrc, setImgSrc] = useState(src);
+  const [imgSrc, setImgSrc] = useState<string>(getImageUrl(src));
 
-  // Reset image if src changes
   useEffect(() => {
-    setImgSrc(src);
+    setImgSrc(getImageUrl(src));
   }, [src]);
 
   return (
     <img
-      src={imgSrc || fallbackSrc}
-      alt={alt}
+      src={imgSrc}
+      alt={alt || "image"}
       {...props}
       onError={() => {
         if (imgSrc !== fallbackSrc) {

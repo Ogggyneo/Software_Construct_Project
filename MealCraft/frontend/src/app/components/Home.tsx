@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Card } from './ui/card';
+import { useEffect, useState } from 'react';
 import { ChevronRight, Search, Zap } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useMode } from '../contexts/ModeContext';
 import { Login } from './Login';
 
@@ -113,14 +112,13 @@ export function Home() {
                 </div>
                 <div>
                   <p className="text-gray-500 text-sm">Xin chào, bạn!</p>
-                  {/* <p>{backendMsg}</p> */}
                   <h2 className="text-3xl font-bold">
                     Bạn muốn ăn gì <span className="text-green-500">hôm nay?</span>
                   </h2>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <button className="p-3 hover:bg-gray-100 rounded-full transition-colors">
+                <button className="p-3 hover:bg-gray-100 rounded-full">
                   <Search className="w-6 h-6 text-gray-600" />
                 </button>
                 <Avatar className="w-12 h-12">
@@ -131,14 +129,13 @@ export function Home() {
           </div>
         </div>
 
-        {/* Suggested Section */}
+        {/* Suggested */}
         <div className="mb-8 px-12">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold">Gợi ý cho bạn</h3>
-              <button className="text-green-500 font-medium flex items-center gap-1 hover:gap-2 transition-all">
-                Xem thêm
-                <ChevronRight className="w-5 h-5" />
+              <button className="text-green-500 flex items-center gap-1">
+                Xem thêm <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
@@ -150,27 +147,23 @@ export function Home() {
                   className="rounded-3xl overflow-hidden relative cursor-pointer group"
                 >
                   <div className="h-80 relative">
+                    {/* ✅ FIX HERE */}
                     <ImageWithFallback
                       src={dish.image}
+                      src={dish.image}
                       alt={dish.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
 
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
-                      <span className="text-sm font-semibold text-gray-800">{dish.badge}</span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+
+                    <div className="absolute top-4 left-4 bg-white/90 px-4 py-2 rounded-full">
+                      <span className="text-sm font-semibold">{dish.badge}</span>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                      <h4 className="font-bold text-2xl mb-3">{dish.name}</h4>
-                      <div className="flex items-center gap-6 text-base">
-                        <span className="flex items-center gap-2">
-                          ⏱️ {dish.time}
-                        </span>
-                        <span className="flex items-center gap-2">
-                          🔥 {dish.calories}
-                        </span>
-                      </div>
+                    <div className="absolute bottom-0 p-6 text-white">
+                      <h4 className="text-2xl font-bold">{dish.name}</h4>
+                      <p>⏱ {dish.time} • 🔥 {dish.calories}</p>
                     </div>
                   </div>
                 </div>
@@ -179,7 +172,7 @@ export function Home() {
           </div>
         </div>
 
-        {/* Explore Section */}
+        {/* Explore */}
         <div className="px-12">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
@@ -190,8 +183,8 @@ export function Home() {
               <button
                 onClick={() => setActiveTab('all')}
                 className={`px-6 py-2.5 rounded-full font-medium transition-colors ${activeTab === 'all'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
               >
                 Tất cả
@@ -199,8 +192,8 @@ export function Home() {
               <button
                 onClick={() => setActiveTab('asian')}
                 className={`px-6 py-2.5 rounded-full font-medium transition-colors ${activeTab === 'asian'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
               >
                 Châu Á
@@ -212,19 +205,18 @@ export function Home() {
                 <div
                   key={index}
                   onClick={() => navigate('/meal-detail')}
-                  className="cursor-pointer group"
+                  className="cursor-pointer"
                 >
-                  <div className="bg-gray-100 rounded-3xl overflow-hidden mb-3 aspect-square">
+                  <div className="bg-gray-100 rounded-3xl overflow-hidden aspect-square">
+                    {/* ✅ FIX HERE */}
                     <ImageWithFallback
                       src={dish.image}
+                      src={dish.image}
                       alt={dish.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="px-2">
-                    <p className="text-sm text-gray-500 mb-1">{dish.category}</p>
-                    <p className="font-semibold text-base">{dish.name}</p>
-                  </div>
+                  <p className="mt-2 font-semibold">{dish.name}</p>
                 </div>
               ))}
             </div>
@@ -234,29 +226,13 @@ export function Home() {
     );
   }
 
+  /* MOBILE */
   return (
     <div className="pb-4 bg-white">
-      {/* Header */}
       <div className="px-4 pt-4 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-            <Zap className="w-6 h-6 text-white fill-white" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Search className="w-6 h-6 text-gray-600" />
-            <Avatar className="w-10 h-10">
-              <AvatarFallback className="bg-green-500 text-white">M</AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-
-        <div className="mb-2">
-          <p className="text-gray-500 text-sm">Xin chào, Minh!</p>
-          <h2 className="text-2xl font-bold">
-            Bạn muốn ăn gì
-            <span className="text-green-500">hôm nay?</span>
-          </h2>
-        </div>
+        <h2 className="text-2xl font-bold">
+          Bạn muốn ăn gì <span className="text-green-500">hôm nay?</span>
+        </h2>
       </div>
 
       {/* Suggested Section */}
@@ -319,8 +295,8 @@ export function Home() {
           <button
             onClick={() => setActiveTab('all')}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'all'
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-100 text-gray-600'
+              ? 'bg-green-500 text-white'
+              : 'bg-gray-100 text-gray-600'
               }`}
           >
             Tất cả
@@ -328,8 +304,8 @@ export function Home() {
           <button
             onClick={() => setActiveTab('asian')}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'asian'
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-100 text-gray-600'
+              ? 'bg-green-500 text-white'
+              : 'bg-gray-100 text-gray-600'
               }`}
           >
             Châu Á

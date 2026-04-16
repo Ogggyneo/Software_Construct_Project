@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router';
 import { Home, ChefHat, ShoppingBag } from 'lucide-react';
 import { useMode } from '../contexts/ModeContext';
 
@@ -7,9 +7,9 @@ export function Layout() {
   const { mode } = useMode();
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Khám phá' },
-    { path: '/ingredients', icon: ChefHat, label: 'Nấu ăn' },
-    { path: '/order-food', icon: ShoppingBag, label: 'Đặt món' },
+    { path: '/home', icon: Home, label: 'Khám phá' },
+    { path: '/home/ingredients', icon: ChefHat, label: 'Nấu ăn' },
+    { path: '/home/order-food', icon: ShoppingBag, label: 'Đặt món' },
   ];
 
   if (mode === 'web') {
