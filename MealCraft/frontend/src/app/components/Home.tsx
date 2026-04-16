@@ -7,39 +7,99 @@ import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
 import { Login } from './Login';
 
+import img1 from './images/1.jpg';
+import img2 from './images/2.jpg';
+import img3 from './images/3.jpg';
+import img4 from './images/4.jpg';
+import img5 from './images/5.jpg';
+import img6 from './images/6.jpg';
+import img7 from './images/7.jpg';
+import img8 from './images/8.jpg';
+import img9 from './images/9.png';
+import img10 from './images/10.jpg';
+import img11 from './images/11.jpg';
+import img12 from './images/12.jpg';
+import img13 from './images/13.jpg';
+import img14 from './images/14.jpg';
+import img15 from './images/15.jpg';
+import img16 from './images/16.jpg';
+import img17 from './images/17.png';
+import img18 from './images/18.jpg';
+import img19 from './images/19.jpg';
+import img20 from './images/20.jpg';
+import img21 from './images/21.jpg';
+
 const suggestedDishes = [
   {
     id: 1,
     name: 'Salad Ức Gà Nướng & Hạt Điều',
     time: '20 phút',
     calories: '350 kcal',
-    image: 'grilled chicken salad nuts',
+    image: img1,
     badge: 'Healthy',
   },
   {
     id: 2,
-    name: 'Mì Ý Sốt Cà Chua Thơm Ngon',
+    name: 'Mì Ý Sốt Cà Chua',
     time: '25 phút',
     calories: '420 kcal',
-    image: 'spaghetti tomato sauce',
-    badge: 'Healthy',
+    image: img2,
+    badge: 'Popular',
+  },
+  {
+    id: 3,
+    name: 'Phở Bò Tái Lăn',
+    time: '30 phút',
+    calories: '480 kcal',
+    image: img3,
+    badge: 'Vietnamese',
+  },
+  {
+    id: 4,
+    name: 'Sushi Cá Hồi Tươi',
+    time: '20 phút',
+    calories: '320 kcal',
+    image: img4,
+    badge: 'Fresh',
   },
 ];
 
-
 const dishes = [
-  { name: 'Phở Bò Tái Lăn', category: 'Asian', image: 'vietnamese beef pho' },
-  { name: 'Sushi Cá Hồi Tươi', category: 'Japanese', image: 'fresh salmon sushi' },
-  { name: 'Bánh Mì Kẹp Thịt', category: 'Street Food', image: 'vietnamese banh mi' },
-  { name: 'Bún Chả Hà Nội', category: 'Vietnamese', image: 'hanoi bun cha' },
-  { name: 'Pizza Hải Sản', category: 'Italian', image: 'seafood pizza' },
-  { name: 'Tacos Tôm Nướng', category: 'Mexican', image: 'grilled shrimp tacos' },
+  { name: 'Salad Ức Gà Nướng & Hạt Điều', category: 'Healthy', image: img1 },
+  { name: 'Mì Ý Sốt Cà Chua', category: 'Italian', image: img2 },
+  { name: 'Phở Bò Tái Lăn', category: 'Asian', image: img3 },
+  { name: 'Sushi Cá Hồi Tươi', category: 'Japanese', image: img4 },
+  { name: 'Bánh Mì Kẹp Thịt', category: 'Street Food', image: img5 },
+  { name: 'Bún Chả Hà Nội', category: 'Vietnamese', image: img6 },
+  { name: 'Pizza Hải Sản', category: 'Italian', image: img7 },
+  { name: 'Tacos Tôm Nướng', category: 'Mexican', image: img8 },
+  { name: 'Cơm Tấm', category: 'Vietnamese', image: img9 },
+  { name: 'Bún Bò Huế', category: 'Vietnamese', image: img10 },
+  { name: 'Canh Khoai Mỡ', category: 'Vietnamese', image: img11 },
+  { name: 'Canh Khổ Qua', category: 'Vietnamese', image: img12 },
+  { name: 'Cơm Cà Ri & Thịt Heo Chiên Xù', category: 'Asian', image: img13 },
+  { name: 'Há Cảo', category: 'Chinese', image: img14 },
+  { name: 'Mì Hoành Thánh Xá Xíu', category: 'Chinese', image: img15 },
+  { name: 'Mì Lạnh Hàn Quốc', category: 'Korean', image: img16 },
+  { name: 'Mì Quảng', category: 'Vietnamese', image: img17 },
+  { name: 'Mì Ý Sốt Dầu Tỏi', category: 'Italian', image: img18 },
+  { name: 'Mì Ý Sốt Kem', category: 'Italian', image: img19 },
+  { name: 'Salad Hoa Quả', category: 'Healthy', image: img20 },
+  { name: 'Salad Khoai Tây', category: 'Healthy', image: img21 },
 ];
 
 export function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const { mode } = useMode();
+
+  const filteredDishes =
+    activeTab === 'asian'
+      ? dishes.filter((dish) =>
+        ['Asian', 'Japanese', 'Vietnamese', 'Chinese', 'Korean'].includes(dish.category)
+      )
+      : dishes;
+
   if (mode === 'web') {
     return (
       <div className="pb-8 bg-white">
@@ -91,7 +151,7 @@ export function Home() {
                 >
                   <div className="h-80 relative">
                     <ImageWithFallback
-                      src={`https://source.unsplash.com/800x600/?${encodeURIComponent(dish.image)}`}
+                      src={dish.image}
                       alt={dish.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -129,28 +189,26 @@ export function Home() {
             <div className="flex gap-3 mb-6">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-6 py-2.5 rounded-full font-medium transition-colors ${
-                  activeTab === 'all'
+                className={`px-6 py-2.5 rounded-full font-medium transition-colors ${activeTab === 'all'
                     ? 'bg-green-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 Tất cả
               </button>
               <button
                 onClick={() => setActiveTab('asian')}
-                className={`px-6 py-2.5 rounded-full font-medium transition-colors ${
-                  activeTab === 'asian'
+                className={`px-6 py-2.5 rounded-full font-medium transition-colors ${activeTab === 'asian'
                     ? 'bg-green-500 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 Châu Á
               </button>
             </div>
 
             <div className="grid grid-cols-3 gap-6">
-              {dishes.map((dish, index) => (
+              {filteredDishes.map((dish, index) => (
                 <div
                   key={index}
                   onClick={() => navigate('/meal-detail')}
@@ -158,7 +216,7 @@ export function Home() {
                 >
                   <div className="bg-gray-100 rounded-3xl overflow-hidden mb-3 aspect-square">
                     <ImageWithFallback
-                      src={`https://source.unsplash.com/400x400/?${encodeURIComponent(dish.image)}`}
+                      src={dish.image}
                       alt={dish.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -220,7 +278,7 @@ export function Home() {
             >
               <div className="h-56 relative">
                 <ImageWithFallback
-                  src={`https://source.unsplash.com/800x600/?${encodeURIComponent(dish.image)}`}
+                  src={dish.image}
                   alt={dish.name}
                   className="w-full h-full object-cover"
                 />
@@ -260,21 +318,19 @@ export function Home() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              activeTab === 'all'
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'all'
                 ? 'bg-green-500 text-white'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+              }`}
           >
             Tất cả
           </button>
           <button
             onClick={() => setActiveTab('asian')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              activeTab === 'asian'
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'asian'
                 ? 'bg-green-500 text-white'
                 : 'bg-gray-100 text-gray-600'
-            }`}
+              }`}
           >
             Châu Á
           </button>
@@ -282,7 +338,7 @@ export function Home() {
 
         {/* Grid */}
         <div className="grid grid-cols-2 gap-4">
-          {dishes.map((dish, index) => (
+          {filteredDishes.map((dish, index) => (
             <div
               key={index}
               onClick={() => navigate('/meal-detail')}
@@ -290,7 +346,7 @@ export function Home() {
             >
               <div className="bg-gray-100 rounded-2xl overflow-hidden mb-2 aspect-square">
                 <ImageWithFallback
-                  src={`https://source.unsplash.com/400x400/?${encodeURIComponent(dish.image)}`}
+                  src={dish.image}
                   alt={dish.name}
                   className="w-full h-full object-cover"
                 />
