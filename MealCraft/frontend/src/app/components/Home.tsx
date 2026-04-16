@@ -63,7 +63,7 @@ export function Home() {
                   <Zap className="w-7 h-7 text-white fill-white" />
                 </div>
                 <div>
-                  <p className="text-gray-500 text-sm">Xin chào, {Login.name}!</p>
+                  <p className="text-gray-500 text-sm">Xin chào, bạn!</p>
                   {/* <p>{backendMsg}</p> */}
                   <h2 className="text-3xl font-bold">
                     Bạn muốn ăn gì <span className="text-green-500">hôm nay?</span>
