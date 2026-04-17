@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router'; // For navigation to group chat and coming soon pages
-import { 
-  MapPin, 
-  Clock, 
-  Filter, 
-  Zap, 
-  ChevronRight, 
-  Plus 
+import { useNavigate } from 'react-router-dom'; // For navigation to group chat and coming soon pages
+import {
+  MapPin,
+  Clock,
+  Filter,
+  Zap,
+  ChevronRight,
+  Plus
 } from 'lucide-react';
+
 
 // UI Components
 import { Button } from './ui/button';
@@ -21,12 +22,12 @@ import { availableGroups } from './data/FoodGroup';
 
 export function OrderFood() {
   const navigate = useNavigate();
-  
+
   // Search Form State
   const [location, setLocation] = useState('');
   const [time, setTime] = useState('');
   const [preference, setPreference] = useState('');
-  
+
   // Mode (web vs mobile) from context
   const { mode } = useMode();
 
@@ -50,9 +51,9 @@ export function OrderFood() {
                 <h2 className="text-3xl font-bold">Đặt món nhóm</h2>
               </div>
               <div className="flex items-center gap-3">
-                <Button 
+                <Button
                   onClick={handleCreateGroup}
-                  variant="outline" 
+                  variant="outline"
                   className="flex items-center gap-2 border-green-500 text-green-600 hover:bg-green-50 px-6 py-6 rounded-xl font-bold"
                 >
                   <Plus className="w-5 h-5" />
@@ -116,9 +117,9 @@ export function OrderFood() {
                   <Button className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl py-6 font-semibold text-base">
                     Tìm nhóm ngay
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleCreateGroup}
-                    variant="ghost" 
+                    variant="ghost"
                     className="w-full text-green-600 hover:text-green-700 hover:bg-green-100 py-6"
                   >
                     Bạn muốn tự mở nhóm? Tạo ngay
@@ -203,10 +204,10 @@ export function OrderFood() {
           <h2 className="text-lg font-bold">Đặt món nhóm</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
+          <Button
             onClick={handleCreateGroup}
-            variant="outline" 
-            size="icon" 
+            variant="outline"
+            size="icon"
             className="rounded-full border-green-500 text-green-600"
           >
             <Plus className="w-5 h-5" />
@@ -263,9 +264,9 @@ export function OrderFood() {
           <Button className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl py-6 font-semibold">
             Tìm nhóm ngay
           </Button>
-          <Button 
+          <Button
             onClick={handleCreateGroup}
-            variant="outline" 
+            variant="outline"
             className="w-full border-green-500 text-green-600 rounded-xl py-6 font-semibold bg-transparent"
           >
             + Tạo nhóm mới

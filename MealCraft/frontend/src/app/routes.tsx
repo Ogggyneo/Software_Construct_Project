@@ -11,10 +11,13 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ComingSoon } from "./components/CommingSoon";
 
 export const router = createBrowserRouter([
+  // Default redirect
   {
     path: "/",
     element: <Navigate to="/login" replace />,
   },
+
+  // Auth
   {
     path: "/login",
     element: <Login />,
@@ -23,6 +26,38 @@ export const router = createBrowserRouter([
     path: "/register",
     element: <Register />,
   },
+
+  // Main App Layout
+  {
+    path: "/home",
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <Home /> },
+      { path: "ingredients", element: <IngredientFinder /> },
+      { path: "order-food", element: <OrderFood /> },
+      { path: "group-chat", element: <GroupChat /> },
+    ],
+  },
+
+  // ✅ Add direct access routes (fix 404)
+  {
+    path: "/order-food",
+    element: <Navigate to="/home/order-food" replace />,
+  },
+  {
+    path: "/ingredients",
+    element: <Navigate to="/home/ingredients" replace />,
+  },
+  {
+    path: "/group-chat",
+    element: <Navigate to="/home/group-chat" replace />,
+  },
+
+  // Other pages
   {
     path: "/meal-detail",
     element: (
@@ -40,30 +75,9 @@ export const router = createBrowserRouter([
     ),
   },
 
+  // ❌ Catch all (important)
   {
-    path: "/home",
-    element: (
-      <ProtectedRoute>
-        <Layout />
-      </ProtectedRoute>
-    ),
-    children: [
-      { index: true, element: <Home /> },
-      { path: "ingredients", element: <IngredientFinder /> },
-      { path: "order-food", element: <OrderFood /> },
-      { path: "group-chat", element: <GroupChat /> },
-
-      // ✅ FIXED
-      { path: "coming-soon", element: <Navigate to="../group-chat" replace /> },
-    ],
-  },
-
-  {
-    path: "/group-chat",
-    element: (
-      <ProtectedRoute>
-        <GroupChat />
-      </ProtectedRoute>
-    ),
+    path: "*",
+    element: <Navigate to="/home" replace />,
   },
 ]);
