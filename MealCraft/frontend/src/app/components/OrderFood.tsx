@@ -33,7 +33,7 @@ export function OrderFood() {
 
   // Function to handle "Coming Soon" for group creation
   const handleCreateGroup = () => {
-    navigate('/coming-soon');
+    navigate('/create-group');
   };
 
   // --- WEB VIEW ---

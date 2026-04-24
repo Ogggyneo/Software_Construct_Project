@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { ChevronLeft, Info, Plus, Send } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, Info, Send } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -13,7 +13,23 @@ interface Message {
   isMe: boolean;
 }
 
-const initialMessages: Message[] = [
+interface Group {
+  id: number;
+  name: string;
+  type: string;
+  members: string[];
+  createdAt: string;
+}
+
+const defaultGroup: Group = {
+  id: 1,
+  name: 'Nhóm Cơm Trưa VP',
+  type: 'private',
+  members: ['Minh Anh', 'Hoàng Long', 'Bạn'],
+  createdAt: new Date().toISOString(),
+};
+
+const defaultMessages: Message[] = [
   {
     id: '1',
     user: 'Minh Anh',
@@ -35,24 +51,31 @@ const initialMessages: Message[] = [
     timestamp: '10:35',
     isMe: true,
   },
-  {
-    id: '4',
-    user: 'Minh Anh',
-    text: 'Ok mình thấy rồi. Còn thiếu sếp tổng nữa là đủ đơn để áp mã giảm giá 50k nè.',
-    timestamp: '10:36',
-    isMe: false,
-  },
-  {
-    id: '5',
-    user: 'Hoàng Long',
-    text: 'Sếp đang họp rồi, chắc 11h mới xong. Mọi người cứ chốt trước đi.',
-    timestamp: '10:40',
-    isMe: false,
-  },
 ];
 
 export function GroupChat() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const newGroup = location.state?.newGroup as Group | undefined;
+
+  const activeGroup = newGroup || defaultGroup;
+
+  const initialMessages: Message[] = newGroup
+    ? [
+      {
+        id: 'welcome',
+        user: 'MealCraft',
+        text: `Nhóm "${newGroup.name}" đã được tạo thành công. Hãy bắt đầu trò chuyện hoặc chia sẻ link đặt món với mọi người nhé!`,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        isMe: false,
+      },
+    ]
+    : defaultMessages;
+
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState('');
 
@@ -63,11 +86,14 @@ export function GroupChat() {
       id: Date.now().toString(),
       user: 'Bạn',
       text: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
       isMe: true,
     };
 
-    setMessages([...messages, message]);
+    setMessages((prev) => [...prev, message]);
     setNewMessage('');
   };
 
@@ -79,8 +105,16 @@ export function GroupChat() {
           <button onClick={() => navigate(-1)} className="p-1">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h3 className="font-bold text-base">Nhóm Cơm Trưa VP</h3>
+
+          <div>
+            <h3 className="font-bold text-base">{activeGroup.name}</h3>
+            <p className="text-xs text-gray-500">
+              {activeGroup.type === 'private' ? 'Nhóm riêng' : 'Nhóm công khai'} ·{' '}
+              {activeGroup.members.length} thành viên
+            </p>
+          </div>
         </div>
+
         <button className="p-1">
           <Info className="w-6 h-6 text-gray-600" />
         </button>
@@ -96,31 +130,46 @@ export function GroupChat() {
         </span>
       </div>
 
+      {/* Members banner */}
+      {newGroup && activeGroup.members.length > 0 && (
+        <div className="px-4 py-3 border-b bg-green-50">
+          <p className="text-xs text-green-700 font-semibold mb-2">Thành viên được mời</p>
+          <div className="flex flex-wrap gap-2">
+            {activeGroup.members.map((member) => (
+              <span
+                key={member}
+                className="px-3 py-1 rounded-full bg-white text-green-700 text-xs border border-green-100"
+              >
+                {member}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 bg-white">
-        {/* Date divider */}
         <div className="flex items-center justify-center mb-6">
           <div className="bg-gray-100 px-4 py-1.5 rounded-full">
             <span className="text-xs text-gray-500 font-medium uppercase">Hôm nay</span>
           </div>
         </div>
 
-        {/* Messages */}
         <div className="space-y-4">
           {messages.map((message) => (
             <div key={message.id}>
               {message.isMe ? (
-                // My message (right aligned, green)
                 <div className="flex justify-end mb-1">
                   <div className="max-w-[75%]">
                     <div className="bg-green-500 text-white px-4 py-3 rounded-2xl rounded-tr-sm">
                       <p className="text-sm leading-relaxed">{message.text}</p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 text-right">{message.timestamp}</p>
+                    <p className="text-xs text-gray-400 mt-1 text-right">
+                      {message.timestamp}
+                    </p>
                   </div>
                 </div>
               ) : (
-                // Others' messages (left aligned, gray)
                 <div className="flex gap-2 mb-1">
                   <Avatar className="w-10 h-10 flex-shrink-0">
                     <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
@@ -128,7 +177,9 @@ export function GroupChat() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 max-w-[75%]">
-                    <p className="text-xs text-gray-500 font-medium mb-1">{message.user}</p>
+                    <p className="text-xs text-gray-500 font-medium mb-1">
+                      {message.user}
+                    </p>
                     <div className="bg-gray-100 text-gray-800 px-4 py-3 rounded-2xl rounded-tl-sm">
                       <p className="text-sm leading-relaxed">{message.text}</p>
                     </div>

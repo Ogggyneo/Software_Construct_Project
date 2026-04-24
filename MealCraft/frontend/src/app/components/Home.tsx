@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
 
+
 import img1 from './images/1.jpg';
 import img2 from './images/2.jpg';
 import img3 from './images/3.jpg';

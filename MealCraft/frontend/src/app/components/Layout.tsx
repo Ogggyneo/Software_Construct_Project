@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, ChefHat, ShoppingBag } from 'lucide-react';
+import { Home, ChefHat, ShoppingBag, User } from 'lucide-react';
 import { useMode } from '../contexts/ModeContext';
 
 export function Layout() {
@@ -10,6 +10,7 @@ export function Layout() {
     { path: '/home', icon: Home, label: 'Khám phá' },
     { path: '/home/ingredients', icon: ChefHat, label: 'Nấu ăn' },
     { path: '/home/order-food', icon: ShoppingBag, label: 'Đặt món' },
+    { path: '/home/profile', icon: User, label: 'Profile' },
   ];
 
   if (mode === 'web') {
@@ -26,8 +27,8 @@ export function Layout() {
                   key={item.path}
                   to={item.path}
                   className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${isActive
-                      ? 'text-green-500 bg-green-50'
-                      : 'text-gray-600 hover:bg-gray-50'
+                    ? 'text-green-500 bg-green-50'
+                    : 'text-gray-600 hover:bg-gray-50'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -64,8 +65,8 @@ export function Layout() {
                 key={item.path}
                 to={item.path}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${isActive
-                    ? 'text-green-500'
-                    : 'text-gray-400'
+                  ? 'text-green-500'
+                  : 'text-gray-400'
                   }`}
               >
                 <Icon className="w-6 h-6" />

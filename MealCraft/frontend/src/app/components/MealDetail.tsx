@@ -117,7 +117,10 @@ export function MealDetail() {
           </div>
         </div>
 
-        <button className="w-full py-4 rounded-2xl bg-green-500 text-white font-semibold flex items-center justify-center gap-2">
+        <button
+          onClick={() => navigate('/cooking-mission', { state: { recipe } })}
+          className="w-full py-4 rounded-2xl bg-green-500 text-white font-semibold flex items-center justify-center gap-2"
+        >
           <Play className="w-5 h-5" />
           Bắt đầu nấu
         </button>
