@@ -6,7 +6,11 @@ import { X, Plus, ChevronDown, ChefHat } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
+import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../../api';
 import { recipes, type Recipe } from './data/recipes';
+
+type DbIngredient = { ingredient_id: number; name: string; category: string };
 
 const commonIngredients = [
   'ức gà',
@@ -66,13 +70,42 @@ export function IngredientFinder() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [results, setResults] = useState<RecipeResult[]>([]);
+  const [dbIngredients, setDbIngredients] = useState<DbIngredient[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { mode } = useMode();
+  const { token } = useAuth();
+
+  // Merge DB ingredient names with hardcoded list for autocomplete
+  const allIngredientNames = [
+    ...new Set([
+      ...commonIngredients,
+      ...dbIngredients.map(i => i.name.toLowerCase()),
+    ]),
+  ];
+
+  // Load all available ingredients and user's saved fridge on mount
+  useEffect(() => {
+    if (!token) return;
+
+    apiFetch<{ items: DbIngredient[] }>('/api/fridge/all', token)
+      .then(data => setDbIngredients(data.items || []))
+      .catch(() => {});
+
+    apiFetch<{ items: DbIngredient[] }>('/api/fridge', token)
+      .then(data => {
+        const saved = (data.items || []).map(i => i.name.toLowerCase());
+        if (saved.length > 0) {
+          setIngredients(saved);
+          setTimeout(() => findRecipes(saved), 100);
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     if (inputValue.trim().length > 0) {
-      const filtered = commonIngredients.filter(
+      const filtered = allIngredientNames.filter(
         (ing) =>
           ing.toLowerCase().includes(inputValue.toLowerCase()) &&
           !ingredients.includes(ing.toLowerCase())
@@ -83,7 +116,7 @@ export function IngredientFinder() {
       setSuggestions([]);
       setShowSuggestions(false);
     }
-  }, [inputValue, ingredients]);
+  }, [inputValue, ingredients, dbIngredients]);
 
   const addIngredient = (ingredient: string) => {
     const normalizedIngredient = ingredient.toLowerCase().trim();
@@ -94,6 +127,19 @@ export function IngredientFinder() {
       setSuggestions([]);
       setShowSuggestions(false);
       setTimeout(() => findRecipes(nextIngredients), 100);
+
+      // Persist to backend if the ingredient exists in DB
+      if (token) {
+        const match = dbIngredients.find(
+          i => i.name.toLowerCase() === normalizedIngredient
+        );
+        if (match) {
+          apiFetch('/api/fridge', token, {
+            method: 'POST',
+            body: JSON.stringify({ ingredient_id: match.ingredient_id }),
+          }).catch(() => {});
+        }
+      }
     }
   };
 
@@ -106,11 +152,27 @@ export function IngredientFinder() {
     } else {
       setResults([]);
     }
+
+    // Remove from backend if it exists in DB
+    if (token) {
+      const match = dbIngredients.find(
+        i => i.name.toLowerCase() === ingredient.toLowerCase()
+      );
+      if (match) {
+        apiFetch(`/api/fridge/${match.ingredient_id}`, token, {
+          method: 'DELETE',
+        }).catch(() => {});
+      }
+    }
   };
 
   const clearAll = () => {
     setIngredients([]);
     setResults([]);
+
+    if (token) {
+      apiFetch('/api/fridge/clear', token, { method: 'DELETE' }).catch(() => {});
+    }
   };
 
   const normalizeText = (text: string) => text.toLowerCase().trim();
