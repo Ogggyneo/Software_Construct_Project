@@ -9,11 +9,30 @@ export function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e: any) => {
+  const handleRegister = async (e: any) => {
     e.preventDefault();
-    // Mock register - navigate to home
-    navigate('/');
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone: '', password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Đăng ký thất bại');
+        return;
+      }
+      navigate('/login');
+    } catch {
+      setError('Không thể kết nối máy chủ');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -116,12 +135,17 @@ export function Register() {
           </p>
         </div>
 
+        {error && (
+          <p className="text-sm text-red-500 text-center">{error}</p>
+        )}
+
         {/* Register Button */}
         <Button
           type="submit"
-          className="w-full bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl text-base font-semibold"
+          disabled={loading}
+          className="w-full bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl text-base font-semibold disabled:opacity-60"
         >
-          Đăng ký ngay →
+          {loading ? 'Đang đăng ký...' : 'Đăng ký ngay →'}
         </Button>
       </form>
 
