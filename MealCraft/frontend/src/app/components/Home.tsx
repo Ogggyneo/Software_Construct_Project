@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronRight, Search, Zap } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
+import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../../api';
 
 
 import img1 from './images/1.jpg';
@@ -604,19 +606,45 @@ const recipes: Recipe[] = [
   },
 ];
 
-const suggestedDishes = recipes.slice(0, 4);
-
 export function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const { mode } = useMode();
+  const { token } = useAuth();
+  const [apiRecipes, setApiRecipes] = useState<Recipe[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    apiFetch<{ recipes: any[] }>('/api/recipes', token)
+      .then(data => {
+        if (data.recipes?.length > 0) {
+          setApiRecipes(data.recipes.map(r => ({
+            id: r.recipe_id,
+            name: r.name,
+            category: r.category || '',
+            image: r.image_url || '',
+            time: r.cook_time || '',
+            calories: r.kcal ? `${r.kcal} kcal` : '',
+            badge: r.category || '',
+            description: '',
+            servings: '',
+            ingredients: [],
+            steps: [],
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [token]);
+
+  const displayRecipes = apiRecipes.length > 0 ? apiRecipes : recipes;
+  const suggestedDishes = displayRecipes.slice(0, 4);
 
   const filteredDishes =
     activeTab === 'asian'
-      ? recipes.filter((dish) =>
-        ['Asian', 'Japanese', 'Vietnamese', 'Chinese', 'Korean'].includes(dish.category)
-      )
-      : recipes;
+      ? displayRecipes.filter((dish) =>
+          ['Asian', 'Japanese', 'Vietnamese', 'Chinese', 'Korean'].includes(dish.category)
+        )
+      : displayRecipes;
 
   const goToMealDetail = (recipe: Recipe) => {
     navigate('/meal-detail', { state: { recipe } });

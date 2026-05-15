@@ -1,13 +1,38 @@
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Clock3, Flame, Users, Bookmark, Play } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import type { Recipe } from './Home';
+import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../../api';
 
 export function MealDetail() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { token } = useAuth();
 
-  const recipe = location.state?.recipe as Recipe | undefined;
+  const recipeFromState = location.state?.recipe as Recipe | undefined;
+  const [recipe, setRecipe] = useState<Recipe | undefined>(recipeFromState);
+
+  useEffect(() => {
+    if (!recipeFromState) return;
+    if (recipeFromState.ingredients.length > 0) return;
+    if (!token) return;
+
+    apiFetch<any>(`/api/recipes/${recipeFromState.id}`, token)
+      .then(data => {
+        setRecipe({
+          ...recipeFromState,
+          description: data.description || recipeFromState.description,
+          servings: data.servings ? `${data.servings} người` : recipeFromState.servings,
+          ingredients: (data.ingredients || []).map(
+            (i: any) => `${i.quantity || ''} ${i.unit || ''} ${i.name}`.trim()
+          ),
+          steps: (data.steps || []).map((s: any) => s.description),
+        });
+      })
+      .catch(() => {});
+  }, [recipeFromState?.id, token]);
 
   if (!recipe) {
     return (
