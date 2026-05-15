@@ -11,12 +11,31 @@ export function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.SyntheticEvent) => {
+  const handleLogin = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    // Call login function and navigate to home
-    login();
-    navigate('/home');
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Đăng nhập thất bại');
+        return;
+      }
+      login(data.token, data.user_id, data.name);
+      navigate('/home');
+    } catch {
+      setError('Không thể kết nối máy chủ');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -107,12 +126,17 @@ export function Login() {
           </div>
         </div>
 
+        {error && (
+          <p className="text-sm text-red-500 text-center">{error}</p>
+        )}
+
         {/* Login Button */}
         <Button
           type="submit"
-          className="w-full bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl text-base font-semibold"
+          disabled={loading}
+          className="w-full bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl text-base font-semibold disabled:opacity-60"
         >
-          Đăng nhập ngay →
+          {loading ? 'Đang đăng nhập...' : 'Đăng nhập ngay →'}
         </Button>
       </form>
 
