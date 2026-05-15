@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { ChevronLeft, Info, Send } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../../api';
 
 interface Message {
   id: string;
@@ -56,8 +58,10 @@ const defaultMessages: Message[] = [
 export function GroupChat() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { token, userId } = useAuth();
 
   const newGroup = location.state?.newGroup as Group | undefined;
+  const groupId = location.state?.group_id as number | undefined;
 
   const activeGroup = newGroup || defaultGroup;
 
@@ -78,6 +82,27 @@ export function GroupChat() {
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState('');
+
+  // Fetch messages from API when joining a real group
+  useEffect(() => {
+    if (!groupId || !token) return;
+
+    apiFetch<{ messages: any[] }>(`/api/group/${groupId}/messages`, token)
+      .then(data => {
+        const mapped: Message[] = (data.messages || []).map(m => ({
+          id: String(m.message_id),
+          user: m.name,
+          text: m.content,
+          timestamp: new Date(m.created_at).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          isMe: m.user_id === userId,
+        }));
+        if (mapped.length > 0) setMessages(mapped);
+      })
+      .catch(() => {});
+  }, [groupId, token]);
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;

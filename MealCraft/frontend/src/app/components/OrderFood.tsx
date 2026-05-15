@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // For navigation to group chat and coming soon pages
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   MapPin,
   Clock,
@@ -9,29 +9,57 @@ import {
   Plus
 } from 'lucide-react';
 
-
-// UI Components
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { Avatar, AvatarFallback } from './ui/avatar';
 
-// Context and Data
 import { useMode } from '../contexts/ModeContext';
-import { availableGroups } from './data/FoodGroup';
+import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../../api';
+import { availableGroups, type FoodGroup } from './data/FoodGroup';
 
 export function OrderFood() {
   const navigate = useNavigate();
+  const { mode } = useMode();
+  const { token } = useAuth();
 
-  // Search Form State
   const [location, setLocation] = useState('');
   const [time, setTime] = useState('');
   const [preference, setPreference] = useState('');
+  const [groups, setGroups] = useState<FoodGroup[]>(availableGroups);
 
-  // Mode (web vs mobile) from context
-  const { mode } = useMode();
+  useEffect(() => {
+    if (!token) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        apiFetch<{ groups: any[] }>(
+          `/api/group/nearby?latitude=${coords.latitude}&longitude=${coords.longitude}`,
+          token
+        )
+          .then(data => {
+            if (data.groups?.length > 0) {
+              setGroups(data.groups.map(g => ({
+                id: String(g.group_id),
+                category: g.cuisine_tag || 'Đặt món',
+                title: g.title_ui,
+                location: g.address || 'Không rõ địa chỉ',
+                time: g.eat_time || '',
+                memberCount: g.member_count || 0,
+                memberAvatars: [],
+              })));
+            }
+          })
+          .catch(() => {});
+      },
+      () => {} // geolocation denied — keep local fallback
+    );
+  }, [token]);
 
-  // Function to handle "Coming Soon" for group creation
+  const handleJoinGroup = (groupId: string) => {
+    navigate('/home/group-chat', { state: { group_id: Number(groupId) } });
+  };
+
   const handleCreateGroup = () => {
     navigate('/create-group');
   };
@@ -133,12 +161,12 @@ export function OrderFood() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-bold text-xl">Các nhóm đang chờ</h3>
                 <span className="text-sm text-green-500 font-medium">
-                  {availableGroups.length} nhóm khả dụng
+                  {groups.length} nhóm khả dụng
                 </span>
               </div>
 
               <div className="space-y-4">
-                {availableGroups.map((group) => (
+                {groups.map((group) => (
                   <Card
                     key={group.id}
                     className="p-6 border border-gray-200 rounded-2xl hover:shadow-lg transition-shadow cursor-pointer"
@@ -175,7 +203,7 @@ export function OrderFood() {
                         </span>
                       </div>
                       <Button
-                        onClick={() => navigate('/group-chat')}
+                        onClick={() => handleJoinGroup(group.id)}
                         className="bg-green-500 hover:bg-green-600 text-white rounded-full px-6 py-5"
                       >
                         Tham gia
@@ -279,12 +307,12 @@ export function OrderFood() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-lg">Các nhóm đang chờ</h3>
           <span className="text-sm text-green-500 font-medium">
-            {availableGroups.length} nhóm khả dụng
+            {groups.length} nhóm khả dụng
           </span>
         </div>
 
         <div className="space-y-3">
-          {availableGroups.map((group) => (
+          {groups.map((group) => (
             <Card
               key={group.id}
               className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow cursor-pointer"
@@ -321,7 +349,7 @@ export function OrderFood() {
                   </span>
                 </div>
                 <Button
-                  onClick={() => navigate('/group-chat')}
+                  onClick={() => handleJoinGroup(group.id)}
                   className="bg-green-500 hover:bg-green-600 text-white rounded-full px-4"
                   size="sm"
                 >
