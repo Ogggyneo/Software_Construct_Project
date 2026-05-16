@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
+  SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { io, Socket } from 'socket.io-client';
@@ -11,58 +11,118 @@ import { useAuth } from '../contexts/AuthContext';
 type Params = { GroupChat: { groupId: string; groupName: string } };
 
 interface Msg {
-  id: string; sender_name: string; text: string; isMe: boolean; time: string;
+  id: string;
+  sender_name: string;
+  text: string;
+  isMe: boolean;
+  time: string;
 }
 
 export function GroupChatScreen() {
   const route = useRoute<RouteProp<Params, 'GroupChat'>>();
   const navigation = useNavigation<any>();
-  const { token, userId } = useAuth();
+  const { token, userId, userName } = useAuth();
   const { groupId, groupName } = route.params;
 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const listRef = useRef<FlatList>(null);
+  // Keep userId in a ref so socket callbacks don't create stale closures
+  const userIdRef = useRef(userId);
+  const userNameRef = useRef(userName);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
+  useEffect(() => { userNameRef.current = userName; }, [userName]);
 
-  const toMsg = useCallback((m: any): Msg => ({
+  // Track texts we sent optimistically so we can skip the server echo
+  const pendingSent = useRef<string[]>([]);
+
+  const rawToMsg = (m: any): Msg => ({
     id: String(m._id ?? m.id ?? Date.now()),
-    sender_name: m.sender_name ?? m.user ?? 'Unknown',
+    sender_name: m.sender_name ?? 'Unknown',
     text: m.text,
-    isMe: String(m.user_id) === String(userId),
+    isMe: String(m.user_id) === String(userIdRef.current),
     time: new Date(m.createdAt ?? Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  }), [userId]);
+  });
+
+  const scrollToBottom = () =>
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
 
   useEffect(() => {
     if (!token) return;
 
-    // Load history
+    // Load message history via REST
     apiFetch<{ messages: any[] }>(`/api/group/${groupId}/messages`, token)
-      .then(d => setMessages((d.messages ?? []).map(toMsg)))
+      .then(d => setMessages((d.messages ?? []).map(rawToMsg)))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); scrollToBottom(); });
 
-    // Socket
-    const socket = io(BASE_URL, { auth: { token } });
+    // Open socket — force WebSocket transport to skip slow polling handshake
+    const socket = io(BASE_URL, {
+      auth: { token },
+      transports: ['websocket'],
+    });
     socketRef.current = socket;
-    socket.emit('join-group', groupId);
+
+    // Join the room only after the connection is established (fixes race condition)
+    socket.on('connect', () => {
+      setConnected(true);
+      socket.emit('join-group', groupId);
+    });
+
+    socket.on('disconnect', () => setConnected(false));
+
+    socket.on('connect_error', (err) => {
+      setConnected(false);
+      console.warn('Socket connect_error:', err.message);
+    });
+
     socket.on('message', (m: any) => {
-      setMessages(prev => [...prev, toMsg(m)]);
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      const isMine = String(m.user_id) === String(userIdRef.current);
+
+      // If this is an echo of a message we sent optimistically, skip it
+      if (isMine && pendingSent.current.includes(m.text)) {
+        const idx = pendingSent.current.indexOf(m.text);
+        pendingSent.current.splice(idx, 1);
+        return;
+      }
+
+      setMessages(prev => [...prev, rawToMsg(m)]);
+      scrollToBottom();
     });
 
     return () => {
       socket.emit('leave-group', groupId);
       socket.disconnect();
     };
-  }, [groupId, token, toMsg]);
+  }, [groupId, token]); // stable deps only — toMsg is a plain fn using refs
 
   const sendMessage = () => {
     const text = input.trim();
-    if (!text || !socketRef.current) return;
-    socketRef.current.emit('send-message', { group_id: groupId, text });
+    if (!text) return;
+
+    if (!socketRef.current?.connected) {
+      Alert.alert('Mất kết nối', 'Đang kết nối lại, vui lòng thử lại sau giây lát.');
+      return;
+    }
+
     setInput('');
+
+    // Add the message immediately for instant feedback (optimistic)
+    const optimistic: Msg = {
+      id: `opt-${Date.now()}`,
+      sender_name: userNameRef.current ?? '',
+      text,
+      isMe: true,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    pendingSent.current.push(text);
+    setMessages(prev => [...prev, optimistic]);
+    scrollToBottom();
+
+    socketRef.current.emit('send-message', { group_id: groupId, text });
   };
 
   return (
@@ -74,7 +134,10 @@ export function GroupChatScreen() {
         </TouchableOpacity>
         <View style={s.headerInfo}>
           <Text style={s.groupName}>{groupName}</Text>
-          <Text style={s.groupSub}>Nhóm đặt món · realtime</Text>
+          <View style={s.statusRow}>
+            <View style={[s.statusDot, connected ? s.dotGreen : s.dotGray]} />
+            <Text style={s.statusText}>{connected ? 'Đã kết nối' : 'Đang kết nối...'}</Text>
+          </View>
         </View>
       </View>
 
@@ -119,11 +182,12 @@ export function GroupChatScreen() {
             placeholderTextColor="#9ca3af"
             onSubmitEditing={sendMessage}
             returnKeyType="send"
+            multiline
           />
           <TouchableOpacity
-            style={[s.sendBtn, !input.trim() && s.sendBtnDisabled]}
+            style={[s.sendBtn, (!input.trim() || !connected) && s.sendBtnDisabled]}
             onPress={sendMessage}
-            disabled={!input.trim()}
+            disabled={!input.trim() || !connected}
           >
             <Text style={s.sendBtnText}>➤</Text>
           </TouchableOpacity>
@@ -142,7 +206,11 @@ const s = StyleSheet.create({
   backText: { fontSize: 22, color: '#111', lineHeight: 28 },
   headerInfo: { flex: 1 },
   groupName: { fontSize: 16, fontWeight: '800', color: '#111827' },
-  groupSub: { fontSize: 11, color: '#9ca3af' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  dotGreen: { backgroundColor: GREEN },
+  dotGray: { backgroundColor: '#d1d5db' },
+  statusText: { fontSize: 11, color: '#9ca3af' },
   msgList: { padding: 14, gap: 10, paddingBottom: 8 },
   empty: { paddingVertical: 40, alignItems: 'center' },
   emptyText: { color: '#9ca3af', fontSize: 14 },
@@ -157,8 +225,8 @@ const s = StyleSheet.create({
   bubbleTextMe: { color: '#fff' },
   msgTime: { fontSize: 10, color: '#9ca3af', marginTop: 4, textAlign: 'right' },
   msgTimeMe: { color: 'rgba(255,255,255,0.7)' },
-  inputRow: { flexDirection: 'row', gap: 10, padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb' },
-  input: { flex: 1, backgroundColor: '#f3f4f6', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: '#111827' },
+  inputRow: { flexDirection: 'row', gap: 10, padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', alignItems: 'flex-end' },
+  input: { flex: 1, backgroundColor: '#f3f4f6', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: '#111827', maxHeight: 100 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled: { opacity: 0.4 },
   sendBtnText: { color: '#fff', fontSize: 16 },
