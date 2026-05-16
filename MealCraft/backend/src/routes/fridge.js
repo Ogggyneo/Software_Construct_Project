@@ -1,76 +1,79 @@
-// New data entity: UserFridge
 const express = require('express');
 const router = express.Router();
-const {pool} = require('../config/db'); // Go up one level to the config folder and then to the db.js file
+const User = require('../models/User');
+const Ingredient = require('../models/Ingredient');
 const authMiddleware = require('../middleware/auth');
 
-// GET all ingredients in the user's fridge
+// GET user's fridge items
 router.get('/', authMiddleware, async (req, res) => {
-    const user_id = req.user.user_id;
-    try {
-        const [items] = await pool.query(
-            'SELECT i.ingredient_id, i.name, i.category FROM Ingredient i JOIN UserFridge uf ON i.ingredient_id = uf.ingredient_id WHERE uf.user_id = ?',
-            [user_id]);
-        res.json({items});
-    } catch (error) {
-        res.status(500).json({message: 'Failed to fetch fridge items'});
-    }
+  try {
+    const user = await User.findById(req.user.user_id).select('fridge');
+    res.json({ items: user?.fridge ?? [] });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch fridge items' });
+  }
 });
 
-// GET all of the available ingredients in the database
-    // This helps the search bar in the frontend to show all the ingredients
+// GET all ingredients in the catalogue (for search/autocomplete)
 router.get('/all', authMiddleware, async (req, res) => {
-    try {
-        const [items] = await pool.query(
-            'SELECT * FROM Ingredient ORDER BY category, name');
-        res.json({items});
-    } catch (error) {
-        res.status(500).json({message: 'Failed to fetch all ingredients'});
-    }
+  try {
+    const items = await Ingredient.find().sort({ category: 1, name: 1 });
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch ingredients' });
+  }
 });
 
-// POST a new ingredient to the user's fridge
+// POST add ingredient to fridge
+// Body: { name, quantity?, unit? }  OR  { ingredient_id }
 router.post('/', authMiddleware, async (req, res) => {
-    const user_id = req.user.user_id;
-    const { ingredient_id } = req.body;
-    try {
-      await pool.query( // This needs to be in try to catch the error
-        'INSERT IGNORE INTO UserFridge (user_id, ingredient_id) VALUES (?, ?)',
-        [user_id, ingredient_id]
-      );
-      res.status(201).json({ message: 'Ingredient added' });
-    } catch (err) {
-      res.status(500).json({ message:'Failed to add ingredient' });
-    }
-  });
+  let { name, quantity = '', unit = '', ingredient_id } = req.body;
 
-// DELTE all ingredients from fridge
+  try {
+    if (!name && ingredient_id) {
+      const ing = await Ingredient.findById(ingredient_id);
+      if (!ing) return res.status(404).json({ message: 'Ingredient not found' });
+      name = ing.name;
+      unit = unit || ing.unit;
+    }
+    if (!name) return res.status(400).json({ message: 'name is required' });
+
+    await User.findByIdAndUpdate(req.user.user_id, {
+      $push: {
+        fridge: {
+          ingredient_id: ingredient_id || null,
+          name,
+          quantity,
+          unit,
+        },
+      },
+    });
+    res.status(201).json({ message: 'Ingredient added' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to add ingredient' });
+  }
+});
+
+// DELETE clear entire fridge
 router.delete('/clear', authMiddleware, async (req, res) => {
-    const user_id = req.user.user_id;
-    try {
-      await pool.query(
-        'DELETE FROM UserFridge WHERE user_id = ?',
-        [user_id]
-      );
-      res.json({ message: 'All ingredients removed' });
-    } catch (err) {
-      res.status(500).json({ message:'Failed to remove all ingredients' });
-    }
-  });
+  try {
+    await User.findByIdAndUpdate(req.user.user_id, { $set: { fridge: [] } });
+    res.json({ message: 'All ingredients removed' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to clear fridge' });
+  }
+});
 
-// DELETE remove one ingredient from fridge
-router.delete('/:ingredient_id', authMiddleware, async (req, res) => {
-    const user_id = req.user.user_id;
-    const { ingredient_id } = req.params;
-    try {
-      await pool.query(
-        'DELETE FROM UserFridge WHERE user_id = ? AND ingredient_id = ?',
-        [user_id, ingredient_id]
-      );
-      res.json({ message: 'Ingredient removed' });
-    } catch (err) {
-      res.status(500).json({ message:'Failed to remove ingredient' });
-    }
-  });
+// DELETE remove one fridge item by its embedded _id
+router.delete('/:item_id', authMiddleware, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.user_id, {
+      $pull: { fridge: { _id: req.params.item_id } },
+    });
+    res.json({ message: 'Ingredient removed' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to remove ingredient' });
+  }
+});
 
 module.exports = router;
