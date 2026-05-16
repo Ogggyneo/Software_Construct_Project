@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text } from 'react-native';
+import { Text, View, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -24,7 +24,6 @@ const TAB_ICONS: Record<string, string> = {
   'Khám phá': '🏠',
   'Nấu ăn':   '🍳',
   'Đặt món':  '🛍️',
-  'AI Chat':  '🤖',
   'Profile':  '👤',
 };
 
@@ -48,25 +47,54 @@ function OrderStackNavigator() {
 }
 
 function AppTabs() {
+  const [chatOpen, setChatOpen] = useState(false);
+
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: () => (
-          <Text style={{ fontSize: 20 }}>{TAB_ICONS[route.name] ?? '•'}</Text>
-        ),
-        tabBarActiveTintColor: '#16a34a',
-        tabBarInactiveTintColor: '#9ca3af',
-        tabBarStyle: { paddingBottom: 6, height: 62 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Khám phá" component={HomeStackNavigator} />
-      <Tab.Screen name="Nấu ăn"   component={IngredientsScreen} />
-      <Tab.Screen name="Đặt món"  component={OrderStackNavigator} />
-      <Tab.Screen name="AI Chat"  component={AIChatScreen} />
-      <Tab.Screen name="Profile"  component={ProfileScreen} />
-    </Tab.Navigator>
+    <View style={{ flex: 1 }}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: () => (
+            <Text style={{ fontSize: 20 }}>{TAB_ICONS[route.name] ?? '•'}</Text>
+          ),
+          tabBarActiveTintColor: '#16a34a',
+          tabBarInactiveTintColor: '#9ca3af',
+          tabBarStyle: { paddingBottom: 6, height: 62 },
+          tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+          headerShown: false,
+        })}
+      >
+        <Tab.Screen name="Khám phá" component={HomeStackNavigator} />
+        <Tab.Screen name="Nấu ăn"   component={IngredientsScreen} />
+        <Tab.Screen name="Đặt món"  component={OrderStackNavigator} />
+        <Tab.Screen name="Profile"  component={ProfileScreen} />
+      </Tab.Navigator>
+
+      {/* Floating AI Chat Button */}
+      <TouchableOpacity
+        style={s.fab}
+        onPress={() => setChatOpen(true)}
+        activeOpacity={0.85}
+      >
+        <Text style={s.fabText}>💬</Text>
+      </TouchableOpacity>
+
+      {/* AI Chat Modal */}
+      <Modal
+        visible={chatOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setChatOpen(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <View style={s.modalBar}>
+            <TouchableOpacity onPress={() => setChatOpen(false)} style={s.closeBtn}>
+              <Text style={s.closeBtnText}>✕ Đóng</Text>
+            </TouchableOpacity>
+          </View>
+          <AIChatScreen />
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -86,3 +114,34 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const s = StyleSheet.create({
+  fab: {
+    position: 'absolute',
+    bottom: 78,
+    right: 16,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#16a34a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  fabText: { fontSize: 22 },
+  modalBar: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    alignItems: 'flex-end',
+  },
+  closeBtn: { padding: 4 },
+  closeBtnText: { fontSize: 14, color: '#6b7280', fontWeight: '600' },
+});
