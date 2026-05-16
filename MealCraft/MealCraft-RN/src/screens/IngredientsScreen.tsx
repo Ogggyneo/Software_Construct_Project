@@ -3,6 +3,11 @@ import {
   View, Text, Image, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
+
+function webConfirm(msg: string): boolean {
+  if (Platform.OS === 'web') return (globalThis as any).confirm?.(msg) ?? false;
+  return false;
+}
 import { useNavigation } from '@react-navigation/native';
 import { apiFetch } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -72,17 +77,23 @@ export function IngredientsScreen() {
     } catch { Alert.alert('Lỗi', 'Không xoá được nguyên liệu'); }
   };
 
+  const doClearAll = async () => {
+    if (!token) return;
+    try {
+      await apiFetch('/api/fridge/clear', token, { method: 'DELETE' });
+      setFridge([]); setMatches([]);
+    } catch { Alert.alert('Lỗi', 'Không xoá được'); }
+  };
+
   const clearAll = () => {
-    Alert.alert('Xoá tủ lạnh', 'Xoá hết nguyên liệu?', [
-      { text: 'Huỷ', style: 'cancel' },
-      { text: 'Xoá hết', style: 'destructive', onPress: async () => {
-        if (!token) return;
-        try {
-          await apiFetch('/api/fridge/clear', token, { method: 'DELETE' });
-          setFridge([]); setMatches([]);
-        } catch { Alert.alert('Lỗi', 'Không xoá được'); }
-      }},
-    ]);
+    if (Platform.OS === 'web') {
+      if (webConfirm('Xoá hết nguyên liệu trong tủ lạnh?')) doClearAll();
+    } else {
+      Alert.alert('Xoá tủ lạnh', 'Xoá hết nguyên liệu?', [
+        { text: 'Huỷ', style: 'cancel' },
+        { text: 'Xoá hết', style: 'destructive', onPress: doClearAll },
+      ]);
+    }
   };
 
   const goToMeal = (recipe: MatchedRecipe) => {

@@ -6,12 +6,14 @@ import { Text, View, Modal, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { FabContext } from './src/contexts/FabContext';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { MealDetailScreen } from './src/screens/MealDetailScreen';
 import { CookingMissionScreen } from './src/screens/CookingMissionScreen';
 import { IngredientsScreen } from './src/screens/IngredientsScreen';
 import { OrderFoodScreen } from './src/screens/OrderFoodScreen';
+import { CreateGroupScreen } from './src/screens/CreateGroupScreen';
 import { GroupChatScreen } from './src/screens/GroupChatScreen';
 import { AIChatScreen } from './src/screens/AIChatScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
@@ -41,6 +43,7 @@ function OrderStackNavigator() {
   return (
     <OrderStack.Navigator screenOptions={{ headerShown: false }}>
       <OrderStack.Screen name="OrderFood" component={OrderFoodScreen} />
+      <OrderStack.Screen name="CreateGroup" component={CreateGroupScreen} />
       <OrderStack.Screen name="GroupChat" component={GroupChatScreen} />
     </OrderStack.Navigator>
   );
@@ -48,68 +51,72 @@ function OrderStackNavigator() {
 
 function AppTabs() {
   const [chatOpen, setChatOpen] = useState(false);
+  const [fabVisible, setFabVisible] = useState(true);
 
   return (
-    <View style={{ flex: 1 }}>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: () => (
-            <Text style={{ fontSize: 20 }}>{TAB_ICONS[route.name] ?? '•'}</Text>
-          ),
-          tabBarActiveTintColor: '#16a34a',
-          tabBarInactiveTintColor: '#9ca3af',
-          tabBarStyle: { paddingBottom: 6, height: 62 },
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-          headerShown: false,
-        })}
-      >
-        <Tab.Screen name="Khám phá" component={HomeStackNavigator} />
-        <Tab.Screen name="Nấu ăn"   component={IngredientsScreen} />
-        <Tab.Screen name="Đặt món"  component={OrderStackNavigator} />
-        <Tab.Screen name="Profile"  component={ProfileScreen} />
-      </Tab.Navigator>
+    <FabContext.Provider value={{ setFabVisible }}>
+      <View style={{ flex: 1 }}>
+        <Tab.Navigator
+          screenOptions={({ route }) => ({
+            tabBarIcon: () => (
+              <Text style={{ fontSize: 20 }}>{TAB_ICONS[route.name] ?? '•'}</Text>
+            ),
+            tabBarActiveTintColor: '#16a34a',
+            tabBarInactiveTintColor: '#9ca3af',
+            tabBarStyle: { paddingBottom: 6, height: 62 },
+            tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+            headerShown: false,
+          })}
+        >
+          <Tab.Screen name="Khám phá" component={HomeStackNavigator} />
+          <Tab.Screen name="Nấu ăn"   component={IngredientsScreen} />
+          <Tab.Screen name="Đặt món"  component={OrderStackNavigator} />
+          <Tab.Screen name="Profile"  component={ProfileScreen} />
+        </Tab.Navigator>
 
-      {/* Floating AI Chat Button */}
-      <TouchableOpacity
-        style={s.fab}
-        onPress={() => setChatOpen(true)}
-        activeOpacity={0.85}
-      >
-        <Text style={s.fabText}>💬</Text>
-      </TouchableOpacity>
+        {/* Floating AI Chat Button — hidden by GroupChatScreen via FabContext */}
+        {fabVisible && (
+          <TouchableOpacity style={s.fab} onPress={() => setChatOpen(true)} activeOpacity={0.85}>
+            <Text style={s.fabText}>💬</Text>
+          </TouchableOpacity>
+        )}
 
-      {/* AI Chat Modal */}
-      <Modal
-        visible={chatOpen}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setChatOpen(false)}
-      >
-        <View style={{ flex: 1 }}>
-          <View style={s.modalBar}>
-            <TouchableOpacity onPress={() => setChatOpen(false)} style={s.closeBtn}>
-              <Text style={s.closeBtnText}>✕ Đóng</Text>
-            </TouchableOpacity>
+        {/* AI Chat Modal */}
+        <Modal
+          visible={chatOpen}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setChatOpen(false)}
+        >
+          <View style={{ flex: 1 }}>
+            <View style={s.modalBar}>
+              <TouchableOpacity onPress={() => setChatOpen(false)} style={s.closeBtn}>
+                <Text style={s.closeBtnText}>✕ Đóng</Text>
+              </TouchableOpacity>
+            </View>
+            <AIChatScreen />
           </View>
-          <AIChatScreen />
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </FabContext.Provider>
   );
 }
 
-function RootNavigator() {
+// Remounting NavigationContainer on auth change fixes web logout/state corruption
+function AuthGatedNav() {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <AppTabs /> : <LoginScreen />;
+  return (
+    <NavigationContainer key={isAuthenticated ? 'auth' : 'anon'}>
+      {isAuthenticated ? <AppTabs /> : <LoginScreen />}
+    </NavigationContainer>
+  );
 }
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <AuthGatedNav />
       </AuthProvider>
     </SafeAreaProvider>
   );

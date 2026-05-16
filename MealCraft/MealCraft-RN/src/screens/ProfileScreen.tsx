@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Alert,
+  SafeAreaView, ScrollView, Alert, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -163,7 +163,19 @@ export function ProfileScreen() {
           <Text style={s.saveBtnText}>💾  Lưu hồ sơ</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={s.logoutBtn} onPress={() => Alert.alert('Đăng xuất', 'Bạn chắc chắn muốn đăng xuất?', [{ text: 'Huỷ', style: 'cancel' }, { text: 'Đăng xuất', style: 'destructive', onPress: logout }])}>
+        <TouchableOpacity
+          style={s.logoutBtn}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              if ((globalThis as any).confirm?.('Bạn chắc chắn muốn đăng xuất?')) logout();
+            } else {
+              Alert.alert('Đăng xuất', 'Bạn chắc chắn muốn đăng xuất?', [
+                { text: 'Huỷ', style: 'cancel' },
+                { text: 'Đăng xuất', style: 'destructive', onPress: logout },
+              ]);
+            }
+          }}
+        >
           <Text style={s.logoutBtnText}>Đăng xuất</Text>
         </TouchableOpacity>
       </ScrollView>
