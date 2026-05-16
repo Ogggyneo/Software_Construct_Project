@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -6,6 +6,7 @@ import { ChevronLeft, Info, Send } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
+import { io, Socket } from 'socket.io-client';
 
 interface Message {
   id: string;
@@ -16,7 +17,7 @@ interface Message {
 }
 
 interface Group {
-  id: number;
+  id: string | number;
   name: string;
   type: string;
   members: string[];
@@ -49,7 +50,7 @@ const defaultMessages: Message[] = [
   {
     id: '3',
     user: 'Bạn',
-    text: 'Mình gửi link gom nhóm grab nhé: abc_grab.vn.com . Mọi người tự trả tiền nhé',
+    text: 'Mình gửi link gom nhóm grab nhé. Mọi người tự trả tiền nhé!',
     timestamp: '10:35',
     isMe: true,
   },
@@ -61,64 +62,106 @@ export function GroupChat() {
   const { token, userId } = useAuth();
 
   const newGroup = location.state?.newGroup as Group | undefined;
-  const groupId = location.state?.group_id as number | undefined;
+  const groupId = location.state?.group_id as string | number | undefined;
 
   const activeGroup = newGroup || defaultGroup;
 
   const initialMessages: Message[] = newGroup
     ? [
-      {
-        id: 'welcome',
-        user: 'MealCraft',
-        text: `Nhóm "${newGroup.name}" đã được tạo thành công. Hãy bắt đầu trò chuyện hoặc chia sẻ link đặt món với mọi người nhé!`,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        isMe: false,
-      },
-    ]
+        {
+          id: 'welcome',
+          user: 'MealCraft',
+          text: `Nhóm "${newGroup.name}" đã được tạo thành công. Hãy bắt đầu trò chuyện!`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isMe: false,
+        },
+      ]
     : defaultMessages;
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState('');
+  const socketRef = useRef<Socket | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Fetch messages from API when joining a real group
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Load history + set up real-time socket
   useEffect(() => {
     if (!groupId || !token) return;
 
-    apiFetch<{ messages: any[] }>(`/api/group/${groupId}/messages`, token)
+    const gid = String(groupId);
+
+    // Load existing messages via HTTP
+    apiFetch<{ messages: any[] }>(`/api/group/${gid}/messages`, token)
       .then(data => {
         const mapped: Message[] = (data.messages || []).map(m => ({
-          id: String(m.message_id),
-          user: m.name,
-          text: m.content,
-          timestamp: new Date(m.created_at).toLocaleTimeString([], {
+          id: String(m._id),
+          user: m.sender_name,
+          text: m.text,
+          timestamp: new Date(m.createdAt).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
           }),
-          isMe: m.user_id === userId,
+          isMe: String(m.user_id) === String(userId),
         }));
         if (mapped.length > 0) setMessages(mapped);
       })
       .catch(() => {});
+
+    // Connect socket
+    const socket = io({ auth: { token } });
+    socketRef.current = socket;
+
+    socket.emit('join-group', gid);
+
+    socket.on('message', (m: any) => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: String(m._id),
+          user: m.sender_name,
+          text: m.text,
+          timestamp: new Date(m.createdAt).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          isMe: String(m.user_id) === String(userId),
+        },
+      ]);
+    });
+
+    return () => {
+      socket.emit('leave-group', gid);
+      socket.disconnect();
+    };
   }, [groupId, token]);
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;
 
-    const message: Message = {
-      id: Date.now().toString(),
-      user: 'Bạn',
-      text: newMessage,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      isMe: true,
-    };
+    if (socketRef.current && groupId) {
+      // Real group → send via socket (server saves + broadcasts)
+      socketRef.current.emit('send-message', {
+        group_id: String(groupId),
+        text: newMessage.trim(),
+      });
+    } else {
+      // Demo mode → local only
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          user: 'Bạn',
+          text: newMessage.trim(),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isMe: true,
+        },
+      ]);
+    }
 
-    setMessages((prev) => [...prev, message]);
     setNewMessage('');
   };
 
@@ -130,7 +173,6 @@ export function GroupChat() {
           <button onClick={() => navigate(-1)} className="p-1">
             <ChevronLeft className="w-6 h-6" />
           </button>
-
           <div>
             <h3 className="font-bold text-base">{activeGroup.name}</h3>
             <p className="text-xs text-gray-500">
@@ -139,7 +181,6 @@ export function GroupChat() {
             </p>
           </div>
         </div>
-
         <button className="p-1">
           <Info className="w-6 h-6 text-gray-600" />
         </button>
@@ -189,9 +230,7 @@ export function GroupChat() {
                     <div className="bg-green-500 text-white px-4 py-3 rounded-2xl rounded-tr-sm">
                       <p className="text-sm leading-relaxed">{message.text}</p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 text-right">
-                      {message.timestamp}
-                    </p>
+                    <p className="text-xs text-gray-400 mt-1 text-right">{message.timestamp}</p>
                   </div>
                 </div>
               ) : (
@@ -202,9 +241,7 @@ export function GroupChat() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 max-w-[75%]">
-                    <p className="text-xs text-gray-500 font-medium mb-1">
-                      {message.user}
-                    </p>
+                    <p className="text-xs text-gray-500 font-medium mb-1">{message.user}</p>
                     <div className="bg-gray-100 text-gray-800 px-4 py-3 rounded-2xl rounded-tl-sm">
                       <p className="text-sm leading-relaxed">{message.text}</p>
                     </div>
@@ -215,6 +252,7 @@ export function GroupChat() {
             </div>
           ))}
         </div>
+        <div ref={bottomRef} />
       </div>
 
       {/* Input */}

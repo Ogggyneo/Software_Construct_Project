@@ -618,16 +618,16 @@ export function Home() {
     apiFetch<{ recipes: any[] }>('/api/recipes', token)
       .then(data => {
         if (data.recipes?.length > 0) {
-          setApiRecipes(data.recipes.map(r => ({
-            id: r.recipe_id,
-            name: r.name,
+          setApiRecipes(data.recipes.map((r: any) => ({
+            id: r._id ?? r.recipe_id,
+            name: r.title ?? r.name ?? '',
             category: r.category || '',
             image: r.image_url || '',
-            time: r.cook_time || '',
-            calories: r.kcal ? `${r.kcal} kcal` : '',
-            badge: r.category || '',
-            description: '',
-            servings: '',
+            time: r.cook_time_min ? `${r.cook_time_min} phút` : (r.cook_time || ''),
+            calories: r.calories_per_serving ? `${r.calories_per_serving} kcal` : (r.kcal ? `${r.kcal} kcal` : ''),
+            badge: (r.tags?.[0] ?? r.category) || '',
+            description: r.description || '',
+            servings: r.servings ? `${r.servings} người` : '',
             ingredients: [],
             steps: [],
           })));

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, ChefHat } from 'lucide-react';
+import { MessageCircle, X, Send, ChefHat, Maximize2, Minimize2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 
@@ -18,6 +18,7 @@ const SUGGESTIONS = [
 export function MealAdvisor() {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'model',
@@ -41,11 +42,7 @@ export function MealAdvisor() {
     setInput('');
     setLoading(true);
 
-    // Build history excluding the first greeting (model-only) and current message
-    const history = nextMessages.slice(1, -1).map(m => ({
-      role: m.role,
-      text: m.text,
-    }));
+    const history = nextMessages.slice(1, -1).map(m => ({ role: m.role, text: m.text }));
 
     try {
       const data = await apiFetch<{ reply: string }>('/api/ai/chat', token, {
@@ -68,9 +65,14 @@ export function MealAdvisor() {
     }
   };
 
+  // Panel size classes
+  const panelClass = fullscreen
+    ? 'fixed inset-4 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden'
+    : 'fixed right-4 bottom-44 z-50 w-80 max-h-[480px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden';
+
   return (
     <>
-      {/* Floating button */}
+      {/* Floating toggle button */}
       <button
         onClick={() => setOpen(o => !o)}
         className="fixed right-4 bottom-24 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95"
@@ -81,16 +83,23 @@ export function MealAdvisor() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed right-4 bottom-44 z-50 w-80 max-h-[480px] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden">
+        <div className={panelClass}>
           {/* Header */}
           <div className="bg-green-500 px-4 py-3 flex items-center gap-3">
             <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
               <ChefHat className="w-5 h-5 text-white" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-white font-semibold text-sm">MealCraft AI</p>
               <p className="text-green-100 text-xs">Trợ lý ẩm thực</p>
             </div>
+            <button
+              onClick={() => setFullscreen(f => !f)}
+              className="text-white/80 hover:text-white transition-colors"
+              aria-label={fullscreen ? 'Thu nhỏ' : 'Mở rộng'}
+            >
+              {fullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
           </div>
 
           {/* Messages */}
@@ -101,7 +110,7 @@ export function MealAdvisor() {
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                  className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                     msg.role === 'user'
                       ? 'bg-green-500 text-white rounded-tr-sm'
                       : 'bg-white text-gray-800 shadow-sm rounded-tl-sm'
@@ -126,7 +135,7 @@ export function MealAdvisor() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Suggestions — only show on first message */}
+          {/* Suggestions — only on first message */}
           {messages.length === 1 && (
             <div className="px-3 py-2 flex gap-2 overflow-x-auto border-t border-gray-100 bg-white">
               {SUGGESTIONS.map((s, i) => (
