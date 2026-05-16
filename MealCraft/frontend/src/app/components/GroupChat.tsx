@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { ChevronLeft, Info, Send } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { apiFetch } from '../../api';
+import { apiFetch } from '../api';
 
 interface Message {
   id: string;

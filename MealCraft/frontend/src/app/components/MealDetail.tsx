@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import type { Recipe } from './Home';
 import { useAuth } from '../contexts/AuthContext';
-import { apiFetch } from '../../api';
+import { apiFetch } from '../api';
 
 export function MealDetail() {
   const navigate = useNavigate();

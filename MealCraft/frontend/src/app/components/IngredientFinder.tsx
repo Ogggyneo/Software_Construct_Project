@@ -7,7 +7,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { apiFetch } from '../../api';
+import { apiFetch } from '../api';
 import { recipes, type Recipe } from './data/recipes';
 
 type DbIngredient = { ingredient_id: number; name: string; category: string };

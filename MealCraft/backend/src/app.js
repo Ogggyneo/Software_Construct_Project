@@ -14,6 +14,7 @@ app.use('/api/auth',    require('./routes/auth'));
 app.use('/api/recipes', require('./routes/recipe'));
 app.use('/api/group',   require('./routes/group'));
 app.use('/api/fridge',  require('./routes/fridge'));
+app.use('/api/ai',      require('./routes/ai'));
 
 const port = Number(process.env.PORT) || 3000;
 

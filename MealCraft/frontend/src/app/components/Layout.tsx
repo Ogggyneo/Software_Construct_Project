@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, ChefHat, ShoppingBag, User } from 'lucide-react';
 import { useMode } from '../contexts/ModeContext';
+import { MealAdvisor } from './MealAdvisor';
 
 export function Layout() {
   const location = useLocation();
@@ -16,6 +17,7 @@ export function Layout() {
   if (mode === 'web') {
     return (
       <div className="h-full flex flex-col bg-white">
+        <MealAdvisor />
         {/* Web Navigation */}
         <nav className="bg-white border-b shadow-sm flex-shrink-0">
           <div className="flex justify-center items-center py-4 px-8 gap-8">
@@ -49,6 +51,7 @@ export function Layout() {
 
   return (
     <div className="h-full flex flex-col bg-white">
+      <MealAdvisor />
       {/* Main Content - Scrollable */}
       <main className="flex-1 overflow-y-auto bg-white pt-8">
         <Outlet />

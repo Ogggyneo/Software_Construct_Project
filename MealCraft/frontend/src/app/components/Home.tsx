@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { useNavigate } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { apiFetch } from '../../api';
+import { apiFetch } from '../api';
 
 
 import img1 from './images/1.jpg';

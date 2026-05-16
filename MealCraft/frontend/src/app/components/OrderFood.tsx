@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 
 import { useMode } from '../contexts/ModeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { apiFetch } from '../../api';
+import { apiFetch } from '../api';
 import { availableGroups, type FoodGroup } from './data/FoodGroup';
 
 export function OrderFood() {
