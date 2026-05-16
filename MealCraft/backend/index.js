@@ -1,14 +1,13 @@
 require('dotenv').config();
 
-const { testDatabaseConnection } = require('./src/config/db');
+const { connectDB } = require('./src/config/db');
 
 async function startServer() {
   try {
-    await testDatabaseConnection();
-    console.log('✅ Database connected successfully!');
+    await connectDB();
   } catch (error) {
-    const message = error && error.message ? error.message : String(error);
-    console.error('❌ Connection failed:', message);
+    console.error('❌ MongoDB connection failed:', error.message);
+    process.exit(1);
   }
 
   require('./src/app');
