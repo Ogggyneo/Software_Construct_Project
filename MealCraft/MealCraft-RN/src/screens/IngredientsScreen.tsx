@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import {
   View, Text, Image, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { apiFetch } from '../api';
+import { useAuth } from '../contexts/AuthContext';
+import { FabContext } from '../contexts/FabContext';
 
 function webConfirm(msg: string): boolean {
   if (Platform.OS === 'web') return (globalThis as any).confirm?.(msg) ?? false;
   return false;
 }
-import { useNavigation } from '@react-navigation/native';
-import { apiFetch } from '../api';
-import { useAuth } from '../contexts/AuthContext';
 
 interface FridgeItem { _id: string; name: string; quantity: string; unit: string }
 
@@ -26,12 +27,18 @@ const POPULAR = ['Ức gà', 'Thịt bò', 'Tôm', 'Cà chua', 'Trứng', 'Khoai
 export function IngredientsScreen() {
   const navigation = useNavigation<any>();
   const { token } = useAuth();
+  const { setFabVisible } = useContext(FabContext);
   const [fridge, setFridge] = useState<FridgeItem[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [matches, setMatches] = useState<MatchedRecipe[]>([]);
   const [matchLoading, setMatchLoading] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    setFabVisible(false);
+    return () => setFabVisible(true);
+  }, [setFabVisible]));
 
   const fetchFridge = useCallback(async () => {
     if (!token) return;
