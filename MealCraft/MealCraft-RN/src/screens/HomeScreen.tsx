@@ -11,13 +11,50 @@ interface Recipe {
   _id: string;
   title: string;
   category: string;
+  cuisine?: string;
   image_url: string;
   cook_time_min: number;
   calories_per_serving: number;
   tags: string[];
 }
 
-const CATEGORIES = ['Tất cả', 'Vietnamese', 'Italian', 'Asian', 'Healthy', 'Street Food', 'Japanese', 'Korean', 'Chinese', 'Mexican'];
+// Country-first, then dietary/type
+const CATEGORIES = [
+  'Tất cả',
+  'Việt Nam', 'Hàn Quốc', 'Nhật Bản', 'Ý', 'Trung Hoa', 'Thái Lan',
+  'Healthy', 'Ăn chay', 'Đồ ăn vặt', 'Đồ ngọt', 'Nhiều protein',
+];
+
+// Old English DB values → new Vietnamese
+const COMPAT: Record<string, string> = {
+  vietnamese: 'Việt Nam', korean: 'Hàn Quốc', japanese: 'Nhật Bản',
+  italian: 'Ý', chinese: 'Trung Hoa', thai: 'Thái Lan',
+  asian: 'Việt Nam', mexican: 'Đồ ăn vặt', 'street food': 'Đồ ăn vặt',
+};
+
+const DIET_TAGS: Record<string, string[]> = {
+  'Ăn chay':       ['chay', 'vegetarian'],
+  'Healthy':        ['healthy', 'eatclean', 'eat clean', 'ít béo'],
+  'Đồ ăn vặt':    ['ăn vặt', 'snack', 'street food'],
+  'Đồ ngọt':      ['ngọt', 'tráng miệng', 'dessert', 'bánh ngọt', 'chè', 'kem'],
+  'Nhiều protein': ['protein', 'gym', 'thể thao', 'ức gà'],
+};
+
+function matchesCategory(r: Recipe, cat: string): boolean {
+  if (cat === 'Tất cả') return true;
+  const rCat     = (r.category || '').toLowerCase();
+  const rCuisine = (r.cuisine  || '').toLowerCase();
+  const title    = r.title.toLowerCase();
+  const tags     = (r.tags || []).map(t => t.toLowerCase());
+
+  if (rCat === cat.toLowerCase() || rCuisine === cat.toLowerCase()) return true;
+
+  const mapped = COMPAT[rCat] || COMPAT[rCuisine];
+  if (mapped === cat) return true;
+
+  const keywords = DIET_TAGS[cat] || [];
+  return keywords.some(kw => tags.some(t => t.includes(kw)) || title.includes(kw));
+}
 
 export function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -54,11 +91,10 @@ export function HomeScreen() {
   };
 
   const featured = recipes.slice(0, 6);
-  const filtered = recipes.filter(r => {
-    const matchCat = category === 'Tất cả' || r.category === category;
-    const matchSearch = !search || r.title.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  const filtered = recipes.filter(r =>
+    matchesCategory(r, category) &&
+    (!search || r.title.toLowerCase().includes(search.toLowerCase()))
+  );
 
   const initials = (userName || '?').charAt(0).toUpperCase();
 
@@ -168,6 +204,7 @@ export function HomeScreen() {
                 <Text style={[s.chipText, category === c && s.chipTextActive]}>{c}</Text>
               </TouchableOpacity>
             ))}
+
           </ScrollView>
 
           {/* Recipe grid */}
