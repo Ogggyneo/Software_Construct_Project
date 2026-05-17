@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Alert, Platform,
+  SafeAreaView, ScrollView, Alert, Platform, Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,17 +32,36 @@ const COOK_FREQ = [
   { value: 'learning', label: 'Đang tập nấu' },
 ];
 
+const ALLERGENS = [
+  // Big 9 quốc tế
+  'Đậu phộng', 'Tôm/Cua/Sò (hải sản có vỏ)', 'Cá', 'Sữa & Lactose',
+  'Trứng', 'Gluten/Lúa mì', 'Đậu nành', 'Hạt cây (điều, óc chó, hạnh nhân)', 'Mè/Vừng',
+  // Đặc thù Việt Nam
+  'Hành', 'Tỏi', 'Ớt/Đồ cay', 'Ngò/Rau mùi', 'Sả',
+  'Nước mắm/Mắm', 'Đậu hủ/Đậu phụ', 'Nấm',
+];
+
 const STORAGE_KEY = 'mealcraftUserProfile';
 
 export function ProfileScreen() {
   const { userName, logout } = useAuth();
   const [name, setName] = useState(userName ?? '');
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const showToast = () => {
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  };
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
   const [cookingLevel, setCookingLevel] = useState('beginner');
   const [mealHabit, setMealHabit] = useState('balanced');
   const [cookFreq, setCookFreq] = useState('weekly');
   const [preferences, setPreferences] = useState<string[]>(['Món Việt', 'Healthy']);
+  const [allergies, setAllergies] = useState<string[]>([]);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then(raw => {
@@ -56,6 +75,7 @@ export function ProfileScreen() {
         if (p.mealHabit) setMealHabit(p.mealHabit);
         if (p.cookFreq) setCookFreq(p.cookFreq);
         if (p.preferences) setPreferences(p.preferences);
+        if (p.allergies) setAllergies(p.allergies);
       } catch {}
     });
   }, []);
@@ -66,16 +86,29 @@ export function ProfileScreen() {
     );
   };
 
+  const toggleAllergy = (item: string) => {
+    setAllergies(prev =>
+      prev.includes(item) ? prev.filter(a => a !== item) : [...prev, item]
+    );
+  };
+
   const saveProfile = async () => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ name, email, location, cookingLevel, mealHabit, cookFreq, preferences }));
-    Alert.alert('Đã lưu', 'Hồ sơ của bạn đã được cập nhật!');
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ name, email, location, cookingLevel, mealHabit, cookFreq, preferences, allergies }));
+    showToast();
   };
 
   const initials = (name || userName || '?').charAt(0).toUpperCase();
   const levelLabel = COOKING_LEVELS.find(l => l.id === cookingLevel)?.title ?? '';
 
   return (
-    <SafeAreaView style={s.root}>
+    <View style={s.root}>
+    <Animated.View style={[s.toast, {
+      opacity: toastAnim,
+      transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
+    }]}>
+      <Text style={s.toastText}>✓ Hồ sơ đã được lưu thành công!</Text>
+    </Animated.View>
+    <SafeAreaView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={s.scroll}>
         <View style={s.pageHeader}>
           <Text style={s.pageTitle}>Hồ sơ cá nhân</Text>
@@ -134,6 +167,26 @@ export function ProfileScreen() {
         </View>
 
         <View style={s.section}>
+          <Text style={s.sectionTitle}>Dị ứng thực phẩm</Text>
+          <Text style={s.allergyNote}>
+            AI sẽ cảnh báo khi gợi ý món có chứa nguyên liệu bạn dị ứng.
+          </Text>
+          <View style={s.prefRow}>
+            {ALLERGENS.map(item => (
+              <TouchableOpacity
+                key={item}
+                style={[s.allergyChip, allergies.includes(item) && s.allergyChipActive]}
+                onPress={() => toggleAllergy(item)}
+              >
+                <Text style={[s.allergyChipText, allergies.includes(item) && s.allergyChipTextActive]}>
+                  {allergies.includes(item) ? '⚠ ' : '+ '}{item}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={s.section}>
           <Text style={s.sectionTitle}>Thói quen ăn uống</Text>
           <View style={s.twoCol}>
             <View style={s.fieldBox}>
@@ -180,12 +233,20 @@ export function ProfileScreen() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+    </View>
   );
 }
 
 const GREEN = '#16a34a';
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
+  toast: {
+    position: 'absolute', top: 54, left: 16, right: 16, zIndex: 999,
+    backgroundColor: '#166534', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', shadowColor: '#000',
+    shadowOpacity: 0.15, shadowRadius: 8, elevation: 8,
+  },
+  toastText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   scroll: { paddingBottom: 40 },
   pageHeader: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   pageTitle: { fontSize: 24, fontWeight: '800', color: '#111827' },
@@ -215,6 +276,11 @@ const s = StyleSheet.create({
   prefChipActive: { backgroundColor: GREEN, borderColor: GREEN },
   prefChipText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
   prefChipTextActive: { color: '#fff' },
+  allergyNote: { fontSize: 12, color: '#6b7280', marginBottom: 12, lineHeight: 18 },
+  allergyChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
+  allergyChipActive: { backgroundColor: '#fef2f2', borderColor: '#fca5a5' },
+  allergyChipText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
+  allergyChipTextActive: { color: '#dc2626', fontWeight: '700' },
   selectBox: { gap: 4 },
   selectItem: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
   selectItemActive: { backgroundColor: GREEN, borderColor: GREEN },
