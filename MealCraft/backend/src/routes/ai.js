@@ -137,8 +137,38 @@ async function buildRestaurantContext(message) {
   }
 }
 
+function buildProfileContext(profile) {
+  if (!profile) return '';
+  const lines = [];
+  if (profile.name)        lines.push(`- Tên: ${profile.name}`);
+  if (profile.location)    lines.push(`- Khu vực: ${profile.location}`);
+  if (profile.cookingLevel) {
+    const lvl = { beginner: 'Mới bắt đầu', 'home-cook': 'Nấu cơ bản', advanced: 'Thành thạo' };
+    lines.push(`- Trình độ nấu ăn: ${lvl[profile.cookingLevel] || profile.cookingLevel}`);
+  }
+  if (profile.mealHabit) {
+    const hab = { balanced: 'Cân bằng', healthy: 'Ưu tiên healthy', quick: 'Ưu tiên món nhanh', 'high-protein': 'Nhiều protein', vegetarian: 'Ăn chay' };
+    lines.push(`- Phong cách ăn uống: ${hab[profile.mealHabit] || profile.mealHabit}`);
+  }
+  if (profile.cookFreq) {
+    const freq = { daily: 'Hằng ngày', weekly: 'Vài lần mỗi tuần', rarely: 'Hiếm khi nấu', learning: 'Đang tập nấu' };
+    lines.push(`- Tần suất nấu ăn: ${freq[profile.cookFreq] || profile.cookFreq}`);
+  }
+  if (profile.preferences?.length)
+    lines.push(`- Sở thích món ăn: ${profile.preferences.join(', ')}`);
+  if (profile.allergies?.length)
+    lines.push(`- DỊ ỨNG/KIÊNG KỴ: ${profile.allergies.join(', ')}`);
+  if (!lines.length) return '';
+
+  const allergyWarning = profile.allergies?.length
+    ? `\n\nQUAN TRỌNG VỀ DỊ ỨNG: Người dùng dị ứng với [${profile.allergies.join(', ')}]. Khi gợi ý bất kỳ món ăn nào có chứa những nguyên liệu này, BẮT BUỘC phải thêm cảnh báo rõ ràng ngay đầu phần đó, ví dụ: "⚠️ Cảnh báo: Món này có [tên nguyên liệu] mà bạn dị ứng. Nếu bạn đang nấu cho người khác thì không sao, nhưng hãy cẩn thận khi thưởng thức." Vẫn cung cấp đầy đủ công thức vì người dùng có thể nấu cho người khác.`
+    : '';
+
+  return `\n\n## THÔNG TIN NGƯỜI DÙNG (dùng để cá nhân hoá gợi ý)\n${lines.join('\n')}${allergyWarning}\n\nHãy ưu tiên gợi ý phù hợp với trình độ, sở thích và khu vực của người dùng.`;
+}
+
 router.post('/chat', authMiddleware, async (req, res) => {
-  const { message, history = [] } = req.body;
+  const { message, history = [], profile } = req.body;
   if (!message) return res.status(400).json({ message: 'Message is required' });
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -151,13 +181,13 @@ router.post('/chat', authMiddleware, async (req, res) => {
       tools: [{ googleSearch: {} }],
     });
 
-    // Inject real restaurant data when query is location-related
     let restaurantContext = '';
     if (isRestaurantQuery(message)) {
       restaurantContext = await buildRestaurantContext(message);
     }
+    const profileContext = buildProfileContext(profile);
 
-    const systemWithContext = SYSTEM_PROMPT + restaurantContext;
+    const systemWithContext = SYSTEM_PROMPT + profileContext + restaurantContext;
 
     const contents = [
       { role: 'user', parts: [{ text: 'Bạn là ai và bạn có thể giúp gì?' }] },

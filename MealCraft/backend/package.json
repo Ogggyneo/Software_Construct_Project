@@ -5,7 +5,10 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "seed:restaurants": "node scripts/seedRestaurants.js"
+    "seed:restaurants": "node scripts/seedRestaurants.js",
+    "scrape:recipes": "node scripts/scrapeRecipes.js",
+    "normalize:recipes": "node scripts/normalizeRecipes.js",
+    "dedup:recipes": "node scripts/dedupRecipes.js"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +16,9 @@
   "description": "",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "axios": "^1.16.1",
     "bcrypt": "^5.1.1",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",

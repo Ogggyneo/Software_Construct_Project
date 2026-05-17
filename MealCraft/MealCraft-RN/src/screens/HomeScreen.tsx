@@ -18,42 +18,30 @@ interface Recipe {
   tags: string[];
 }
 
-// Country-first, then dietary/type
-const CATEGORIES = [
-  'Tất cả',
-  'Việt Nam', 'Hàn Quốc', 'Nhật Bản', 'Ý', 'Trung Hoa', 'Thái Lan',
-  'Healthy', 'Ăn chay', 'Đồ ăn vặt', 'Đồ ngọt', 'Nhiều protein',
+const COUNTRIES = ['Tất cả', 'Việt Nam', 'Hàn Quốc', 'Nhật Bản', 'Ý', 'Trung Hoa', 'Thái Lan'];
+
+const VN_SUBCATS = [
+  'Tất cả', 'Chè & Tráng miệng', 'Lẩu', 'Phở & Bún', 'Cơm',
+  'Gà', 'Canh & Súp', 'Xôi', 'Bánh', 'Hải sản', 'Đậu hũ',
+  'Ăn chay', 'Đồ ăn vặt', 'Cơm & Mì',
 ];
 
-// Old English DB values → new Vietnamese
-const COMPAT: Record<string, string> = {
-  vietnamese: 'Việt Nam', korean: 'Hàn Quốc', japanese: 'Nhật Bản',
-  italian: 'Ý', chinese: 'Trung Hoa', thai: 'Thái Lan',
-  asian: 'Việt Nam', mexican: 'Đồ ăn vặt', 'street food': 'Đồ ăn vặt',
-};
+function normCuisine(raw: string | undefined): string {
+  const c = (raw || '').toLowerCase();
+  if (c === 'việt nam' || c === 'vietnamese') return 'Việt Nam';
+  if (c === 'hàn quốc' || c === 'korean') return 'Hàn Quốc';
+  if (c === 'nhật bản' || c === 'japanese') return 'Nhật Bản';
+  if (c === 'ý' || c === 'italian') return 'Ý';
+  if (c === 'trung hoa' || c === 'chinese') return 'Trung Hoa';
+  if (c === 'thái lan' || c === 'thai') return 'Thái Lan';
+  return 'Việt Nam';
+}
 
-const DIET_TAGS: Record<string, string[]> = {
-  'Ăn chay':       ['chay', 'vegetarian'],
-  'Healthy':        ['healthy', 'eatclean', 'eat clean', 'ít béo'],
-  'Đồ ăn vặt':    ['ăn vặt', 'snack', 'street food'],
-  'Đồ ngọt':      ['ngọt', 'tráng miệng', 'dessert', 'bánh ngọt', 'chè', 'kem'],
-  'Nhiều protein': ['protein', 'gym', 'thể thao', 'ức gà'],
-};
-
-function matchesCategory(r: Recipe, cat: string): boolean {
-  if (cat === 'Tất cả') return true;
-  const rCat     = (r.category || '').toLowerCase();
-  const rCuisine = (r.cuisine  || '').toLowerCase();
-  const title    = r.title.toLowerCase();
-  const tags     = (r.tags || []).map(t => t.toLowerCase());
-
-  if (rCat === cat.toLowerCase() || rCuisine === cat.toLowerCase()) return true;
-
-  const mapped = COMPAT[rCat] || COMPAT[rCuisine];
-  if (mapped === cat) return true;
-
-  const keywords = DIET_TAGS[cat] || [];
-  return keywords.some(kw => tags.some(t => t.includes(kw)) || title.includes(kw));
+function matchesFilter(r: Recipe, country: string, subCat: string): boolean {
+  if (country === 'Tất cả') return true;
+  if (normCuisine(r.cuisine) !== country) return false;
+  if (subCat === 'Tất cả') return true;
+  return (r.category || '') === subCat;
 }
 
 export function HomeScreen() {
@@ -63,7 +51,8 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('Tất cả');
+  const [country, setCountry] = useState('Tất cả');
+  const [subCat, setSubCat] = useState('Tất cả');
 
   const fetchRecipes = useCallback(async () => {
     if (!token) return;
@@ -77,6 +66,11 @@ export function HomeScreen() {
   }, [token]);
 
   useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
+
+  const changeCountry = (c: string) => {
+    setCountry(c);
+    setSubCat('Tất cả');
+  };
 
   const goToRecipe = (item: Recipe) => {
     navigation.navigate('MealDetail', {
@@ -92,7 +86,7 @@ export function HomeScreen() {
 
   const featured = recipes.slice(0, 6);
   const filtered = recipes.filter(r =>
-    matchesCategory(r, category) &&
+    matchesFilter(r, country, subCat) &&
     (!search || r.title.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -171,11 +165,11 @@ export function HomeScreen() {
                 >
                   <Image source={{ uri: item.image_url }} style={s.featuredImage} resizeMode="cover" />
                   <View style={s.featuredOverlay}>
-                    {item.tags?.[0] && (
+                    {item.category ? (
                       <View style={s.featuredTag}>
-                        <Text style={s.featuredTagText}>{item.tags[0]}</Text>
+                        <Text style={s.featuredTagText} numberOfLines={1}>{item.category}</Text>
                       </View>
-                    )}
+                    ) : null}
                     <Text style={s.featuredTitle} numberOfLines={2}>{item.title}</Text>
                     <Text style={s.featuredMeta}>⏱ {item.cook_time_min} phút  🔥 {item.calories_per_serving} kcal</Text>
                   </View>
@@ -189,23 +183,41 @@ export function HomeScreen() {
         <View style={s.section}>
           <Text style={s.sectionTitle}>Khám phá món ăn</Text>
 
-          {/* Category chips */}
+          {/* Level 1: Country */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={s.chips}
           >
-            {CATEGORIES.map(c => (
+            {COUNTRIES.map(c => (
               <TouchableOpacity
                 key={c}
-                style={[s.chip, category === c && s.chipActive]}
-                onPress={() => setCategory(c)}
+                style={[s.chip, country === c && s.chipActive]}
+                onPress={() => changeCountry(c)}
               >
-                <Text style={[s.chipText, category === c && s.chipTextActive]}>{c}</Text>
+                <Text style={[s.chipText, country === c && s.chipTextActive]}>{c}</Text>
               </TouchableOpacity>
             ))}
-
           </ScrollView>
+
+          {/* Level 2: Sub-categories (Việt Nam only) */}
+          {country === 'Việt Nam' && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.chips}
+            >
+              {VN_SUBCATS.map(c => (
+                <TouchableOpacity
+                  key={c}
+                  style={[s.chip, s.chipSub, subCat === c && s.chipSubActive]}
+                  onPress={() => setSubCat(c)}
+                >
+                  <Text style={[s.chipText, s.chipSubText, subCat === c && s.chipSubTextActive]}>{c}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
 
           {/* Recipe grid */}
           {filtered.length === 0 ? (
@@ -223,11 +235,11 @@ export function HomeScreen() {
                   onPress={() => goToRecipe(item)}
                 >
                   <Image source={{ uri: item.image_url }} style={s.cardImage} resizeMode="cover" />
-                  {item.tags?.[0] && (
+                  {item.category ? (
                     <View style={s.badge}>
-                      <Text style={s.badgeText}>{item.tags[0]}</Text>
+                      <Text style={s.badgeText} numberOfLines={1}>{item.category}</Text>
                     </View>
-                  )}
+                  ) : null}
                   <View style={s.cardBody}>
                     <Text style={s.cardTitle} numberOfLines={2}>{item.title}</Text>
                     <View style={s.cardMeta}>
@@ -291,24 +303,29 @@ const s = StyleSheet.create({
   },
   featuredTag: {
     alignSelf: 'flex-start', backgroundColor: GREEN, borderRadius: 6,
-    paddingHorizontal: 7, paddingVertical: 2, marginBottom: 5,
+    paddingHorizontal: 7, paddingVertical: 2, marginBottom: 5, maxWidth: 120,
   },
   featuredTagText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   featuredTitle: { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 3 },
   featuredMeta: { fontSize: 10, color: 'rgba(255,255,255,0.85)' },
 
-  chips: { gap: 8, paddingVertical: 8, paddingRight: 4, flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  chips: { gap: 8, paddingVertical: 6, paddingRight: 4, flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#e5e7eb', alignSelf: 'flex-start' },
   chipActive: { backgroundColor: GREEN, borderColor: GREEN },
   chipText: { fontSize: 13, color: '#6b7280', fontWeight: '500' },
   chipTextActive: { color: '#fff' },
 
+  chipSub: { backgroundColor: '#f9fafb', borderColor: '#d1fae5', paddingHorizontal: 12, paddingVertical: 5 },
+  chipSubActive: { backgroundColor: '#dcfce7', borderColor: GREEN },
+  chipSubText: { fontSize: 12 },
+  chipSubTextActive: { color: GREEN, fontWeight: '700' },
+
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: { width: '48.5%', backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   cardImage: { width: '100%', height: 130 },
-  badge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(22,163,74,0.9)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  badge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(22,163,74,0.9)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, maxWidth: 100 },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  cardBody: { padding: 10 },
+  cardBody: { padding: 10, minHeight: 72 },
   cardTitle: { fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 6, lineHeight: 18 },
   cardMeta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   metaText: { fontSize: 11, color: '#6b7280' },

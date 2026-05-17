@@ -45,7 +45,7 @@ router.get('/nearby', authMiddleware, async (req, res) => {
 // POST create a new group
 router.post('/create', authMiddleware, async (req, res) => {
   const user_id = req.user.user_id;
-  const { name, description = '', address = '', latitude, longitude, max_members = 10, pickup_point = '', order_deadline } = req.body;
+  const { name, description = '', address = '', latitude, longitude, max_members = 10, pickup_point = '', order_deadline, food_preferences = [], budget = '' } = req.body;
 
   if (!name) return res.status(400).json({ message: 'name is required' });
 
@@ -58,6 +58,8 @@ router.post('/create', authMiddleware, async (req, res) => {
       address,
       pickup_point,
       order_deadline: order_deadline ? new Date(order_deadline) : null,
+      food_preferences,
+      budget,
       location: {
         type: 'Point',
         coordinates: [parseFloat(longitude) || 0, parseFloat(latitude) || 0],

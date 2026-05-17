@@ -27,8 +27,10 @@ const groupSchema = new mongoose.Schema({
     default: 'open',
   },
 
-  pickup_point:  { type: String, default: '' },
+  pickup_point:   { type: String, default: '' },
   order_deadline: { type: Date, default: null },
+  food_preferences: [{ type: String }],
+  budget:         { type: String, default: '' },
 
   chosen_recipe: { type: mongoose.Schema.Types.ObjectId, ref: 'Recipe', default: null },
   owner_id:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

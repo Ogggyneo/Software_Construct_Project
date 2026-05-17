@@ -38,8 +38,8 @@ const recipeSchema = new mongoose.Schema({
   is_public:  { type: Boolean, default: true },
 }, { timestamps: true });
 
-// Allow Airflow to upsert by (title, scrape_source) without duplicates
 recipeSchema.index({ title: 1, scrape_source: 1 }, { unique: true, sparse: true });
+recipeSchema.index({ 'ingredients.name': 1 }); // fast $in matching from fridge
 recipeSchema.index({ tags: 1 });
 recipeSchema.index({ category: 1 });
 recipeSchema.index({ title: 'text', description: 'text', tags: 'text' });

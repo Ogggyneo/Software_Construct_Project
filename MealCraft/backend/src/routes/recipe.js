@@ -37,27 +37,47 @@ router.get('/recommended', authMiddleware, async (req, res) => {
   }
 });
 
-// GET recipes whose ingredients overlap with user's fridge
+// GET recipes whose ingredients overlap with user's fridge (or ?ingredients=x,y,z)
 router.get('/matching', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.user_id).select('fridge');
-    if (!user?.fridge?.length)
-      return res.json({ recipes: [], message: 'Tủ lạnh của bạn đang trống' });
+    // Accept explicit ingredients from query, or fall back to user's saved fridge
+    let fridgeNames;
+    if (req.query.ingredients) {
+      const raw = Array.isArray(req.query.ingredients)
+        ? req.query.ingredients
+        : String(req.query.ingredients).split(',');
+      fridgeNames = raw.map(i => i.trim().toLowerCase()).filter(Boolean);
+    } else {
+      const user = await User.findById(req.user.user_id).select('fridge');
+      if (!user?.fridge?.length)
+        return res.json({ recipes: [], message: 'Tủ lạnh của bạn đang trống' });
+      fridgeNames = user.fridge.map(f => f.name.toLowerCase());
+    }
 
-    const fridgeNames = user.fridge.map(f => f.name.toLowerCase());
+    if (!fridgeNames.length)
+      return res.json({ recipes: [], message: 'Chưa có nguyên liệu nào' });
 
-    const recipes = await Recipe.find({ is_public: true })
-      .select('title category image_url cook_time_min calories_per_serving ingredients');
+    // $in pre-filter — fast index hit even with 1000+ recipes
+    const recipes = await Recipe.find({
+      is_public: true,
+      'ingredients.name': { $in: fridgeNames },
+    })
+      .select('title category image_url cook_time_min calories_per_serving tags ingredients')
+      .limit(100)
+      .lean();
 
+    // Score each recipe by match %
     const result = recipes
       .map(r => {
         const total = r.ingredients.length;
-        if (total === 0) return null;
+        if (!total) return null;
         const matched = r.ingredients.filter(i =>
-          fridgeNames.includes(i.name.toLowerCase())
+          fridgeNames.some(fn =>
+            i.name.toLowerCase().includes(fn) || fn.includes(i.name.toLowerCase())
+          )
         ).length;
+        if (!matched) return null;
         const missing = total - matched;
-        if (matched === 0) return null;
         return {
           _id: r._id,
           title: r.title,
@@ -65,14 +85,17 @@ router.get('/matching', authMiddleware, async (req, res) => {
           image_url: r.image_url,
           cook_time_min: r.cook_time_min,
           calories_per_serving: r.calories_per_serving,
+          tags: r.tags,
           total_ingredients: total,
           matched_ingredients: matched,
           missing_ingredients: missing,
+          match_percent: Math.round((matched / total) * 100),
           status: missing === 0 ? 'Đủ nguyên liệu ✅' : `Thiếu ${missing} nguyên liệu`,
         };
       })
       .filter(Boolean)
-      .sort((a, b) => a.missing_ingredients - b.missing_ingredients);
+      .sort((a, b) => b.match_percent - a.match_percent)
+      .slice(0, 20);
 
     res.json({ recipes: result });
   } catch (err) {
