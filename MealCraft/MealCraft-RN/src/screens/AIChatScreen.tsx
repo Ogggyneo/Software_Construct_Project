@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiFetch } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -23,6 +24,13 @@ export function AIChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const listRef = useRef<FlatList>(null);
+  const profileRef = useRef<Record<string, any> | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem('mealcraftUserProfile').then(raw => {
+      if (raw) try { profileRef.current = JSON.parse(raw); } catch {}
+    });
+  }, []);
 
   useEffect(() => {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
@@ -39,7 +47,7 @@ export function AIChatScreen() {
     try {
       const data = await apiFetch<{ reply: string }>('/api/ai/chat', token, {
         method: 'POST',
-        body: JSON.stringify({ message: text, history }),
+        body: JSON.stringify({ message: text, history, profile: profileRef.current }),
       });
       setMessages(prev => [...prev, { role: 'model', text: data.reply }]);
     } catch (err: any) {
