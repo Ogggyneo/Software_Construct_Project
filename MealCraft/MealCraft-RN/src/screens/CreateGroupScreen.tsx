@@ -30,6 +30,18 @@ const PICKUP_PRESETS = [
   'Cổng sau toà nhà',
 ];
 
+const FOOD_PREFERENCES = [
+  'Món Việt', 'Món Hàn', 'Món Nhật', 'Món Ý', 'Món Trung',
+  'Healthy', 'Ăn chay', 'Ít cay', 'Đồ ngọt', 'Món nhanh', 'Nhiều protein',
+];
+
+const BUDGET_OPTIONS = [
+  { label: '< 50k/người', value: '<50k' },
+  { label: '50k – 100k', value: '50k-100k' },
+  { label: '100k – 200k', value: '100k-200k' },
+  { label: '> 200k/người', value: '>200k' },
+];
+
 function useNominatim() {
   const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,6 +89,13 @@ export function CreateGroupScreen() {
   const [deadlineOption, setDeadlineOption] = useState<typeof DEADLINE_OPTIONS[0] | null>(null);
   const [deadlineModalOpen, setDeadlineModalOpen] = useState(false);
 
+  // Preferences + budget
+  const [foodPrefs, setFoodPrefs] = useState<string[]>([]);
+  const [budget, setBudget] = useState('');
+
+  const togglePref = (p: string) =>
+    setFoodPrefs(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+
   const addMember = () => {
     const v = memberInput.trim();
     if (!v || members.includes(v)) return;
@@ -105,6 +124,8 @@ export function CreateGroupScreen() {
           latitude: addressLat ?? 10.7769,
           longitude: addressLon ?? 106.7009,
           order_deadline: orderDeadline,
+          food_preferences: foodPrefs,
+          budget,
         }),
       });
       navigation.replace('GroupChat', { groupId: data.group_id, groupName: name.trim() });
@@ -249,6 +270,36 @@ export function CreateGroupScreen() {
           <Text style={s.deadlineArrow}>▾</Text>
         </TouchableOpacity>
 
+        {/* ── Sở thích món ăn ── */}
+        <Text style={s.label}>Sở thích món ăn</Text>
+        <View style={s.chipRow}>
+          {FOOD_PREFERENCES.map(p => (
+            <TouchableOpacity
+              key={p}
+              style={[s.chip, foodPrefs.includes(p) && s.chipActive]}
+              onPress={() => togglePref(p)}
+            >
+              <Text style={[s.chipText, foodPrefs.includes(p) && s.chipTextActive]}>{p}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Budget ── */}
+        <Text style={s.label}>💰 Budget mỗi người</Text>
+        <View style={s.budgetRow}>
+          {BUDGET_OPTIONS.map(opt => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[s.budgetBtn, budget === opt.value && s.budgetBtnActive]}
+              onPress={() => setBudget(prev => prev === opt.value ? '' : opt.value)}
+            >
+              <Text style={[s.budgetBtnText, budget === opt.value && s.budgetBtnTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* ── Thêm thành viên ── */}
         <Text style={s.label}>Thêm thành viên</Text>
         <View style={s.memberInputRow}>
@@ -294,11 +345,13 @@ export function CreateGroupScreen() {
               </View>
             </View>
           </View>
-          {(address || pickupPoint || deadlineOption) ? (
+          {(address || pickupPoint || deadlineOption || budget || foodPrefs.length > 0) ? (
             <View style={s.previewDetails}>
               {address ? <Text style={s.previewDetailText}>📍 {address}</Text> : null}
               {pickupPoint ? <Text style={s.previewDetailText}>🏢 {pickupPoint}</Text> : null}
               {deadlineOption ? <Text style={s.previewDetailText}>⏰ Chốt: {deadlineOption.label}</Text> : null}
+              {budget ? <Text style={s.previewDetailText}>💰 {BUDGET_OPTIONS.find(b => b.value === budget)?.label}</Text> : null}
+              {foodPrefs.length > 0 ? <Text style={s.previewDetailText}>🍽 {foodPrefs.join(', ')}</Text> : null}
             </View>
           ) : null}
           <View style={s.previewStats}>
@@ -442,6 +495,12 @@ const s = StyleSheet.create({
   modalCheck: { fontSize: 16, color: GREEN, fontWeight: '700' },
   modalCancel: { marginTop: 12, alignItems: 'center', paddingVertical: 12 },
   modalCancelText: { fontSize: 14, color: '#9ca3af' },
+
+  budgetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  budgetBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: '#e5e7eb', backgroundColor: '#fff' },
+  budgetBtnActive: { borderColor: GREEN, backgroundColor: '#f0fdf4' },
+  budgetBtnText: { fontSize: 13, color: '#374151', fontWeight: '600' },
+  budgetBtnTextActive: { color: GREEN },
 });
 
 // Separate style for suggestion items to avoid circular reference
