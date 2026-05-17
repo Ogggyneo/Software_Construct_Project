@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const authMiddleware = require('../middleware/auth');
+const Restaurant = require('../models/Restaurant');
 
 const SYSTEM_PROMPT = `Bạn là MealCraft AI, trợ lý ẩm thực cá nhân hóa thông minh của ứng dụng MealCraft.
 
@@ -65,6 +66,77 @@ Liệt kê tất cả cách chế biến có thể, từ đơn giản đến ph�
 4. Nếu thiếu thông tin để cá nhân hóa, hỏi thêm 1-2 câu ngắn gọn trước khi gợi ý
 5. Luôn chủ động hỏi về dị ứng/kiêng kỵ thực phẩm khi tư vấn lần đầu`;
 
+const RESTAURANT_KEYWORDS = [
+  'quán', 'nhà hàng', 'ăn ở đâu', 'order', 'đặt món', 'giao đồ ăn',
+  'grab food', 'shopee food', 'be food', 'gợi ý quán', 'tìm quán',
+  'ăn gì', 'địa điểm ăn', 'chỗ ăn', 'nơi ăn', 'quán nào', 'chỗ nào ngon',
+  'khu vực', 'quận 7', 'phú mỹ hưng', 'crescent', 'vivocity', 'lotte',
+];
+
+function isRestaurantQuery(message) {
+  const lower = message.toLowerCase();
+  return RESTAURANT_KEYWORDS.some(kw => lower.includes(kw));
+}
+
+async function buildRestaurantContext(message) {
+  try {
+    const lower = message.toLowerCase();
+
+    // Build a flexible filter
+    const filter = {};
+
+    // Platform filter
+    if (lower.includes('grab')) filter['platforms.grab'] = true;
+    else if (lower.includes('shopee food')) filter['platforms.shopee_food'] = true;
+    else if (lower.includes('be food')) filter['platforms.be_food'] = true;
+
+    // Category hints
+    const categoryMap = {
+      'phở': 'Phở', 'bún': 'Phở', 'cơm tấm': 'Cơm tấm', 'gà rán': 'Gà rán',
+      'pizza': 'Pizza', 'sushi': 'Sushi', 'ramen': 'Ramen', 'hàn': 'Hàn Quốc',
+      'nhật': 'Nhật Bản', 'lẩu': 'Lẩu', 'nướng': 'Nướng', 'cà phê': 'Cà phê',
+      'trà sữa': 'Trà', 'bánh mì': 'Bánh mì', 'hải sản': 'Hải sản',
+      'burger': 'Burger', 'dimsum': 'Dimsum',
+    };
+    for (const [kw, cat] of Object.entries(categoryMap)) {
+      if (lower.includes(kw)) {
+        filter.$or = [
+          { category: { $regex: cat, $options: 'i' } },
+          { cuisine: { $regex: cat, $options: 'i' } },
+          { tags: { $regex: kw, $options: 'i' } },
+        ];
+        break;
+      }
+    }
+
+    // Area hints
+    const areaMap = {
+      'crescent': 'Crescent Mall', 'vivocity': 'SC VivoCity', 'vivo': 'SC VivoCity',
+      'lotte': 'Lotte Mart', 'phú mỹ hưng': 'Phú Mỹ Hưng',
+    };
+    for (const [kw, area] of Object.entries(areaMap)) {
+      if (lower.includes(kw)) { filter.area = area; break; }
+    }
+
+    const restaurants = await Restaurant.find(filter).limit(30).lean();
+
+    if (!restaurants.length) return '';
+
+    const lines = restaurants.map(r => {
+      const platforms = Object.entries(r.platforms || {})
+        .filter(([, v]) => v)
+        .map(([k]) => ({ grab: 'Grab Food', shopee_food: 'Shopee Food', be_food: 'Be Food' }[k]))
+        .join(', ');
+      return `- ${r.name} | ${r.category}${r.cuisine ? ' (' + r.cuisine + ')' : ''} | ${r.address}, ${r.district} | Giá: ${r.price_range} | Có mặt trên: ${platforms || 'Không rõ'} | Giờ mở: ${r.open_hours || 'N/A'}`;
+    });
+
+    return `\n\n## DỮ LIỆU QUÁN ĂN THỰC TẾ (chỉ dùng thông tin này, không bịa thêm)\n${lines.join('\n')}\n\nHãy gợi ý từ danh sách trên. Luôn ghi rõ tên quán, địa chỉ, và app giao hàng có thể tìm thấy. Không tự thêm quán nào ngoài danh sách.`;
+  } catch (err) {
+    console.error('Restaurant context error:', err.message);
+    return '';
+  }
+}
+
 router.post('/chat', authMiddleware, async (req, res) => {
   const { message, history = [] } = req.body;
   if (!message) return res.status(400).json({ message: 'Message is required' });
@@ -79,9 +151,17 @@ router.post('/chat', authMiddleware, async (req, res) => {
       tools: [{ googleSearch: {} }],
     });
 
+    // Inject real restaurant data when query is location-related
+    let restaurantContext = '';
+    if (isRestaurantQuery(message)) {
+      restaurantContext = await buildRestaurantContext(message);
+    }
+
+    const systemWithContext = SYSTEM_PROMPT + restaurantContext;
+
     const contents = [
       { role: 'user', parts: [{ text: 'Bạn là ai và bạn có thể giúp gì?' }] },
-      { role: 'model', parts: [{ text: SYSTEM_PROMPT }] },
+      { role: 'model', parts: [{ text: systemWithContext }] },
       ...history
         .filter(h => h.role === 'user' || h.role === 'model')
         .map(h => ({ role: h.role, parts: [{ text: h.text }] })),
