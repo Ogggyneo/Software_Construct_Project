@@ -95,6 +95,23 @@ const CUISINES = {
       'cá thái lan',
     ],
   },
+  'Trung Hoa': {
+    countryTag: 'trung hoa',
+    keywords: [
+      'dimsum trung hoa',
+      'há cảo trung hoa',
+      'cơm chiên dương châu',
+      'mì xào trung hoa',
+      'vịt tiềm trung hoa',
+      'sủi cảo trung hoa',
+      'cha siu trung hoa',
+      'lẩu trung hoa',
+      'xíu mại trung hoa',
+      'hoành thánh trung hoa',
+      'cơm tấm trung hoa',
+      'gà hấp trung hoa',
+    ],
+  },
 };
 
 const HEADERS = {

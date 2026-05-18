@@ -108,9 +108,11 @@ async function main() {
   let updated = 0;
   let skip = 0;
 
+  const INTL_CUISINES = new Set(['Hàn Quốc', 'Nhật Bản', 'Ý', 'Thái Lan', 'Trung Hoa']);
+
   while (skip < total) {
     const recipes = await Recipe.find({ is_public: true })
-      .select('title tags ingredients')
+      .select('title tags cuisine ingredients')
       .skip(skip)
       .limit(BATCH)
       .lean();
@@ -118,7 +120,14 @@ async function main() {
     if (!recipes.length) break;
 
     const ops = recipes.map(r => {
-      const { cuisine, category } = classifyRecipe(r.title, r.tags);
+      let cuisine, category;
+      if (INTL_CUISINES.has(r.cuisine)) {
+        // Already correctly tagged by scrapeIntl.js — preserve cuisine, set category = cuisine
+        cuisine = r.cuisine;
+        category = r.cuisine;
+      } else {
+        ({ cuisine, category } = classifyRecipe(r.title, r.tags));
+      }
       return {
         updateOne: {
           filter: { _id: r._id },
