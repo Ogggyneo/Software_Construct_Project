@@ -45,8 +45,9 @@ function HomeStackNavigator() {
 function CookStackNavigator() {
   return (
     <CookStack.Navigator screenOptions={{ headerShown: false }}>
-      <CookStack.Screen name="Ingredients" component={IngredientsScreen} />
-      <CookStack.Screen name="MealDetail"  component={MealDetailScreen} />
+      <CookStack.Screen name="Ingredients"    component={IngredientsScreen} />
+      <CookStack.Screen name="MealDetail"     component={MealDetailScreen} />
+      <CookStack.Screen name="CookingMission" component={CookingMissionScreen} />
     </CookStack.Navigator>
   );
 }
