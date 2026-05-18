@@ -309,10 +309,14 @@ export function GroupChatScreen() {
             <TouchableOpacity
               style={s.leaveBtn}
               onPress={() => {
-                Alert.alert('Rời nhóm', `Bạn muốn rời khỏi "${groupName}"?`, [
-                  { text: 'Huỷ', style: 'cancel' },
-                  { text: 'Rời nhóm', style: 'destructive', onPress: leaveGroup },
-                ]);
+                if (Platform.OS === 'web') {
+                  if ((globalThis as any).confirm?.(`Bạn muốn rời khỏi "${groupName}"?`)) leaveGroup();
+                } else {
+                  Alert.alert('Rời nhóm', `Bạn muốn rời khỏi "${groupName}"?`, [
+                    { text: 'Huỷ', style: 'cancel' },
+                    { text: 'Rời nhóm', style: 'destructive', onPress: leaveGroup },
+                  ]);
+                }
               }}
               disabled={leaving}
             >
