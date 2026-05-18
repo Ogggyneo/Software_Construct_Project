@@ -88,15 +88,15 @@ async function main() {
   await mongoose.connect(uri);
   console.log('✅ Connected\n');
 
-  const total = await Recipe.countDocuments({ is_scraped: true });
-  console.log(`📋 ${total} scraped recipes to normalize\n`);
+  const total = await Recipe.countDocuments({ is_public: true });
+  console.log(`📋 ${total} public recipes to normalize\n`);
 
   const BATCH = 100;
   let updated = 0;
   let skip = 0;
 
   while (skip < total) {
-    const recipes = await Recipe.find({ is_scraped: true })
+    const recipes = await Recipe.find({ is_public: true })
       .select('title tags ingredients')
       .skip(skip)
       .limit(BATCH)

@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const authMiddleware = require('../middleware/auth');
 
 router.post('/register', async (req, res) => {
   const { name, email, phone = '', password } = req.body;
@@ -45,6 +46,20 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('login:', err.message);
     res.status(500).json({ message: 'Login failed' });
+  }
+});
+
+router.put('/preferences', authMiddleware, async (req, res) => {
+  const { cuisines, dietary, allergies } = req.body;
+  try {
+    const update = {};
+    if (Array.isArray(cuisines))  update['preferences.cuisines']  = cuisines;
+    if (Array.isArray(dietary))   update['preferences.dietary']   = dietary;
+    if (Array.isArray(allergies)) update['preferences.allergies'] = allergies;
+    await User.findByIdAndUpdate(req.user.user_id, { $set: update });
+    res.json({ message: 'ok' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update preferences' });
   }
 });
 

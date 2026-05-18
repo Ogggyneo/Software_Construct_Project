@@ -4,12 +4,29 @@ const Recipe = require('../models/Recipe');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
 
-// GET all recipes for home feed
+// GET all recipes for home feed — category-balanced so no single type dominates
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const recipes = await Recipe.find({ is_public: true })
-      .select('title category image_url cook_time_min calories_per_serving tags')
-      .sort({ createdAt: -1 });
+    const recipes = await Recipe.aggregate([
+      { $match: { is_public: true } },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$category',
+          items: {
+            $push: {
+              _id: '$_id', title: '$title', category: '$category', cuisine: '$cuisine',
+              image_url: '$image_url', cook_time_min: '$cook_time_min',
+              calories_per_serving: '$calories_per_serving', tags: '$tags',
+            },
+          },
+        },
+      },
+      { $project: { items: { $slice: ['$items', 25] } } },
+      { $unwind: '$items' },
+      { $replaceRoot: { newRoot: '$items' } },
+      { $sample: { size: 600 } },
+    ]);
     res.json({ recipes });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch recipes' });
@@ -20,18 +37,53 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/recommended', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.user_id).select('preferences');
-    const cuisines = user?.preferences?.cuisines ?? [];
+    const cuisines  = user?.preferences?.cuisines  ?? [];
+    const dietary   = user?.preferences?.dietary   ?? [];
+    const allergies = user?.preferences?.allergies ?? [];
 
-    const query = cuisines.length
-      ? { is_public: true, cuisine: { $in: cuisines } }
-      : { is_public: true };
+    const query = { is_public: true };
+    if (cuisines.length) query.cuisine = { $in: cuisines };
+    if (dietary.some(d => /vegetarian|vegan|chay/i.test(d))) {
+      query.$or = [
+        { category: 'Ăn chay' },
+        { tags: { $elemMatch: { $regex: 'chay', $options: 'i' } } },
+      ];
+    }
 
-    const recipes = await Recipe.find(query)
-      .select('title category image_url cook_time_min calories_per_serving tags')
-      .sort({ createdAt: -1 })
-      .limit(10);
+    // Diverse sample: up to 4 per category, then pick 20 randomly
+    let recipes = await Recipe.aggregate([
+      { $match: query },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$category',
+          items: {
+            $push: {
+              _id: '$_id', title: '$title', category: '$category', cuisine: '$cuisine',
+              image_url: '$image_url', cook_time_min: '$cook_time_min',
+              calories_per_serving: '$calories_per_serving', tags: '$tags',
+              ingredients: '$ingredients',
+            },
+          },
+        },
+      },
+      { $project: { items: { $slice: ['$items', 4] } } },
+      { $unwind: '$items' },
+      { $replaceRoot: { newRoot: '$items' } },
+      { $sample: { size: 40 } },
+    ]);
 
-    res.json({ recipes });
+    if (allergies.length) {
+      const keywords = allergies
+        .flatMap(a => a.toLowerCase().split(/[/\s&,()]+/).filter(w => w.length > 2));
+      recipes = recipes.filter(r =>
+        !(r.ingredients ?? []).some(ing =>
+          keywords.some(kw => (ing.name ?? '').toLowerCase().includes(kw))
+        )
+      );
+    }
+
+    res.json({ recipes: recipes.slice(0, 10).map(({ ingredients, ...r }) => r) });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch recommendations' });
   }
