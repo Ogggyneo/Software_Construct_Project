@@ -170,10 +170,23 @@ export function GroupChatScreen() {
     if (!token) return;
     setLeaving(true);
     try {
-      await apiFetch(`/api/group/${groupId}/leave`, token, { method: 'DELETE' });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      await apiFetch(`/api/group/${groupId}/leave`, token, {
+        method: 'DELETE',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
       navigation.navigate('OrderFood');
     } catch (err: any) {
-      Alert.alert('Lỗi', err.message || 'Không rời được nhóm');
+      const msg = err.name === 'AbortError'
+        ? 'Kết nối quá chậm, thử lại sau'
+        : (err.message || 'Không rời được nhóm');
+      if (Platform.OS === 'web') {
+        (globalThis as any).alert?.(msg);
+      } else {
+        Alert.alert('Lỗi', msg);
+      }
     } finally {
       setLeaving(false);
     }

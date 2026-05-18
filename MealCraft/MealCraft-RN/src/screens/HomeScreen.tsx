@@ -24,7 +24,7 @@ const SUBCATS: Record<string, string[]> = {
   'Việt Nam': [
     'Tất cả', 'Chè & Tráng miệng', 'Lẩu', 'Phở & Bún', 'Cơm',
     'Gà', 'Canh & Súp', 'Xôi', 'Bánh', 'Hải sản', 'Đậu hũ',
-    'Ăn chay', 'Đồ ăn vặt', 'Cơm & Mì',
+    'Ăn chay', 'Đồ ăn vặt',
   ],
   'Hàn Quốc': [
     'Tất cả', 'Kim Chi', 'Cơm Trộn', 'Bánh Xếp', 'Gà',
