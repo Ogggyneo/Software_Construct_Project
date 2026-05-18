@@ -1,12 +1,15 @@
 /**
- * International recipe scraper — 20 unique dishes per cuisine.
- * Targets: Korean, Japanese, Italian, Thai on Cookpad Vietnam.
+ * International recipe scraper — up to 5 unique dishes per subcategory keyword.
+ * Each cuisine has ~10-12 category-level keywords → ~50-60 attempts → ~40-50 unique dishes.
+ * We cap the final DB insert at MAX_PER_CUISINE (default 20) for balance.
  *
  * Usage:
  *   MONGODB_URI="mongodb+srv://..." node scripts/scrapeIntl.js
  *
- * Each cuisine gets a dedicated country tag injected so normalizeRecipes.js
- * classifies them correctly even when the title is in Vietnamese.
+ * Env overrides:
+ *   MAX_PER_KEYWORD  - recipes to take per keyword    (default 5)
+ *   MAX_PER_CUISINE  - total recipes stored per cuisine (default 20)
+ *   DELAY_MS         - ms between requests            (default 1500)
  */
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const axios    = require('axios');
@@ -14,42 +17,82 @@ const cheerio  = require('cheerio');
 const mongoose = require('mongoose');
 const Recipe   = require('../src/models/Recipe');
 
-const DELAY_MS       = parseInt(process.env.DELAY_MS        || '1500');
-const MAX_PER_KEYWORD = parseInt(process.env.MAX_PER_KEYWORD || '3');
-const BASE  = 'https://cookpad.com';
+const DELAY_MS        = parseInt(process.env.DELAY_MS        || '1500');
+const MAX_PER_KEYWORD = parseInt(process.env.MAX_PER_KEYWORD || '5');
+const MAX_PER_CUISINE = parseInt(process.env.MAX_PER_CUISINE || '20');
+const BASE = 'https://cookpad.com';
 
-// 8+ dish-specific keywords per cuisine → ~24 scrape attempts → ~20 unique dishes
+/**
+ * Category-level keywords, one per distinct subcategory on Cookpad Vietnam.
+ * Each yields a focused, different dish type — prevents 30 kimchi variations.
+ */
 const CUISINES = {
   'Hàn Quốc': {
-    tag: 'hàn quốc',
+    countryTag: 'hàn quốc',
     keywords: [
-      'kimchi', 'tokbokki', 'kimbap', 'bibimbap', 'japchae',
-      'bulgogi', 'samgyeopsal', 'galbi hàn quốc', 'ramyeon hàn',
-      'sundubu jjigae', 'hotteok', 'gà chiên hàn', 'cơm trộn hàn quốc',
+      'kim chi hàn quốc',
+      'cơm trộn hàn quốc',
+      'bánh xếp hàn quốc',
+      'gà hàn quốc',
+      'thịt heo hàn quốc',
+      'sườn hàn quốc',
+      'lẩu hàn quốc',
+      'mì tương đen hàn quốc',
+      'gà sốt hàn quốc',
+      'bánh mì hàn quốc',
+      'tteokbokki',
+      'japchae',
     ],
   },
   'Nhật Bản': {
-    tag: 'nhật bản',
+    countryTag: 'nhật bản',
     keywords: [
-      'sushi', 'ramen nhật', 'gyoza nhật', 'tempura nhật', 'udon nhật',
-      'onigiri nhật', 'miso soup', 'takoyaki', 'okonomiyaki', 'teriyaki nhật',
-      'karaage', 'katsudon nhật', 'mochi nhật', 'tamagoyaki',
+      'sushi nhật bản',
+      'ramen nhật bản',
+      'gyoza nhật bản',
+      'tempura nhật bản',
+      'udon nhật bản',
+      'onigiri nhật bản',
+      'miso soup nhật bản',
+      'takoyaki nhật bản',
+      'okonomiyaki nhật bản',
+      'teriyaki nhật bản',
+      'karaage nhật bản',
+      'katsudon nhật bản',
     ],
   },
   'Ý': {
-    tag: 'ý',
+    countryTag: 'ý',
     keywords: [
-      'pizza', 'spaghetti carbonara', 'lasagna', 'risotto', 'gnocchi',
-      'focaccia', 'tiramisu', 'panna cotta', 'pesto pasta', 'bruschetta',
-      'pasta bolognese', 'arancini', 'calzone', 'cannoli',
+      'pizza ý',
+      'spaghetti carbonara',
+      'lasagna ý',
+      'risotto ý',
+      'pasta bolognese',
+      'gnocchi ý',
+      'tiramisu ý',
+      'panna cotta',
+      'focaccia ý',
+      'bruschetta ý',
+      'pesto pasta',
+      'calzone ý',
     ],
   },
   'Thái Lan': {
-    tag: 'thái lan',
+    countryTag: 'thái lan',
     keywords: [
-      'pad thai', 'tom yum', 'cà ri thái', 'xôi xoài thái', 'cơm rang thái',
-      'larb thái', 'satay thái', 'papaya salad thái', 'tom kha gai',
-      'gỏi đu đủ thái', 'bánh tôm thái', 'cá thái lan', 'mango sticky rice',
+      'pad thai',
+      'tom yum thái lan',
+      'cà ri thái lan',
+      'cơm rang thái lan',
+      'xôi xoài thái lan',
+      'lẩu thái lan',
+      'gỏi đu đủ thái',
+      'satay thái lan',
+      'tom kha gai',
+      'gà sốt thái lan',
+      'bánh tôm thái lan',
+      'cá thái lan',
     ],
   },
 };
@@ -102,8 +145,9 @@ function parseIngredient(text) {
   return { quantity: '', unit: '', name: text };
 }
 
-async function scrapeSearchPage(keyword, page) {
-  const url = `${BASE}/vn/tim-kiem/${encodeURIComponent(keyword)}?page=${page}`;
+/** Returns up to MAX_PER_KEYWORD unique recipe URLs from one search keyword (page 1 only). */
+async function getUrlsForKeyword(keyword) {
+  const url = `${BASE}/vn/tim-kiem/${encodeURIComponent(keyword)}?page=1`;
   const html = await fetchHtml(url);
   if (!html) return [];
   const $ = cheerio.load(html);
@@ -113,7 +157,8 @@ async function scrapeSearchPage(keyword, page) {
     if (/\/vn\/cong-thuc\/\d+/.test(href))
       urls.add(href.startsWith('http') ? href : `${BASE}${href}`);
   });
-  return [...urls];
+  // Only keep the first MAX_PER_KEYWORD to enforce variety
+  return [...urls].slice(0, MAX_PER_KEYWORD);
 }
 
 async function scrapeRecipe(url, cuisine, countryTag) {
@@ -165,7 +210,7 @@ async function scrapeRecipe(url, cuisine, countryTag) {
   return {
     title: data.name.trim(),
     description: data.description || '',
-    category: cuisine,      // will be corrected by normalize script
+    category: cuisine,      // normalizeRecipes.js will correct this
     cuisine,
     image_url,
     cook_time_min,
@@ -189,52 +234,51 @@ async function main() {
 
   let totalInserted = 0;
 
-  for (const [cuisine, { tag, keywords }] of Object.entries(CUISINES)) {
-    console.log(`\n🌍 Cuisine: ${cuisine}`);
-    const allUrls = new Set();
+  for (const [cuisine, { countryTag, keywords }] of Object.entries(CUISINES)) {
+    console.log(`\n🌍 Cuisine: ${cuisine}  (target: ${MAX_PER_CUISINE}, ${MAX_PER_KEYWORD}/keyword)`);
+    let inserted = 0;
 
     for (const keyword of keywords) {
-      if (allUrls.size >= 25) break; // enough for 20 unique after dedup/failures
+      if (inserted >= MAX_PER_CUISINE) break;
+
       console.log(`  🔍 "${keyword}"`);
-      for (let page = 1; page <= 2; page++) {
-        const urls = await scrapeSearchPage(keyword, page);
-        urls.forEach(u => allUrls.add(u));
-        process.stdout.write(`    page ${page}: +${urls.length} (pool ${allUrls.size})\n`);
-        if (urls.length === 0) break;
-        await sleep(DELAY_MS);
-        // Stop early if we have enough URLs to get MAX_PER_KEYWORD recipes
-        if (urls.length > 0 && allUrls.size >= keywords.indexOf(keyword) * MAX_PER_KEYWORD + MAX_PER_KEYWORD) break;
-      }
-    }
-
-    console.log(`  📋 ${allUrls.size} unique URLs — scraping details...`);
-    let inserted = 0, skipped = 0;
-
-    for (const url of allUrls) {
-      if (inserted >= 20) break;
-      const recipe = await scrapeRecipe(url, cuisine, tag);
+      const urls = await getUrlsForKeyword(keyword);
+      process.stdout.write(`    found ${urls.length} URLs\n`);
       await sleep(DELAY_MS);
 
-      if (!recipe) { skipped++; continue; }
+      let keywordInserted = 0;
 
-      try {
-        const existing = await Recipe.findOne({ source_url: url });
-        if (existing) {
-          skipped++;
-          process.stdout.write(`  ⟳ already exists: ${recipe.title}\n`);
-          continue;
+      for (const url of urls) {
+        if (inserted >= MAX_PER_CUISINE) break;
+        if (keywordInserted >= MAX_PER_KEYWORD) break;
+
+        const recipe = await scrapeRecipe(url, cuisine, countryTag);
+        await sleep(DELAY_MS);
+
+        if (!recipe) continue;
+
+        try {
+          const existing = await Recipe.findOne({ source_url: url });
+          if (existing) {
+            process.stdout.write(`    ⟳ exists: ${recipe.title}\n`);
+            continue;
+          }
+          await Recipe.create(recipe);
+          process.stdout.write(`    ✅ [${keywordInserted + 1}/${MAX_PER_KEYWORD}] ${recipe.title}\n`);
+          inserted++;
+          keywordInserted++;
+          totalInserted++;
+        } catch (err) {
+          process.stdout.write(`    ❌ ${err.message}\n`);
         }
-        await Recipe.create(recipe);
-        process.stdout.write(`  ✅ ${recipe.title}\n`);
-        inserted++;
-        totalInserted++;
-      } catch (err) {
-        process.stdout.write(`  ❌ ${err.message}\n`);
-        skipped++;
+      }
+
+      if (keywordInserted === 0) {
+        process.stdout.write(`    ⚠️  0 new recipes for "${keyword}"\n`);
       }
     }
 
-    console.log(`  → ${inserted} inserted, ${skipped} skipped`);
+    console.log(`  → ${inserted} inserted for ${cuisine}`);
   }
 
   console.log(`\n🎉 Done! Total inserted: ${totalInserted}`);

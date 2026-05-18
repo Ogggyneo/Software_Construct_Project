@@ -20,11 +20,77 @@ interface Recipe {
 
 const COUNTRIES = ['Tất cả', 'Việt Nam', 'Hàn Quốc', 'Nhật Bản', 'Ý', 'Trung Hoa', 'Thái Lan'];
 
-const VN_SUBCATS = [
-  'Tất cả', 'Chè & Tráng miệng', 'Lẩu', 'Phở & Bún', 'Cơm',
-  'Gà', 'Canh & Súp', 'Xôi', 'Bánh', 'Hải sản', 'Đậu hũ',
-  'Ăn chay', 'Đồ ăn vặt', 'Cơm & Mì',
-];
+const SUBCATS: Record<string, string[]> = {
+  'Việt Nam': [
+    'Tất cả', 'Chè & Tráng miệng', 'Lẩu', 'Phở & Bún', 'Cơm',
+    'Gà', 'Canh & Súp', 'Xôi', 'Bánh', 'Hải sản', 'Đậu hũ',
+    'Ăn chay', 'Đồ ăn vặt', 'Cơm & Mì',
+  ],
+  'Hàn Quốc': [
+    'Tất cả', 'Kim Chi', 'Cơm Trộn', 'Bánh Xếp', 'Gà',
+    'Thịt Heo', 'Sườn', 'Lẩu', 'Mì Tương Đen', 'Gà Sốt',
+    'Tteokbokki', 'Japchae',
+  ],
+  'Nhật Bản': [
+    'Tất cả', 'Sushi', 'Ramen', 'Gyoza', 'Tempura',
+    'Udon', 'Onigiri', 'Miso Soup', 'Takoyaki',
+    'Okonomiyaki', 'Teriyaki', 'Karaage',
+  ],
+  'Ý': [
+    'Tất cả', 'Pizza', 'Carbonara', 'Lasagna', 'Risotto',
+    'Bolognese', 'Gnocchi', 'Tiramisu', 'Panna Cotta',
+    'Focaccia', 'Bruschetta', 'Pesto',
+  ],
+  'Thái Lan': [
+    'Tất cả', 'Pad Thai', 'Tom Yum', 'Cà Ri', 'Cơm Rang',
+    'Xôi Xoài', 'Lẩu', 'Gỏi Đu Đủ', 'Satay',
+    'Tom Kha Gai', 'Gà Sốt', 'Bánh Tôm',
+  ],
+};
+
+// Keywords to match in title+tags for each international subcategory
+const INTL_KEYWORDS: Record<string, string[]> = {
+  'Kim Chi':       ['kim chi', 'kimchi'],
+  'Cơm Trộn':      ['cơm trộn', 'bibimbap'],
+  'Bánh Xếp':      ['bánh xếp', 'mandu'],
+  'Thịt Heo':      ['thịt heo'],
+  'Sườn':          ['sườn'],
+  'Mì Tương Đen':  ['mì tương đen', 'jajang', 'jjajang'],
+  'Gà Sốt':        ['gà sốt'],
+  'Tteokbokki':    ['tteokbokki', 'tokbokki'],
+  'Japchae':       ['japchae', 'miến'],
+  'Sushi':         ['sushi'],
+  'Ramen':         ['ramen'],
+  'Gyoza':         ['gyoza'],
+  'Tempura':       ['tempura'],
+  'Udon':          ['udon'],
+  'Onigiri':       ['onigiri'],
+  'Miso Soup':     ['miso'],
+  'Takoyaki':      ['takoyaki'],
+  'Okonomiyaki':   ['okonomiyaki'],
+  'Teriyaki':      ['teriyaki'],
+  'Karaage':       ['karaage'],
+  'Pizza':         ['pizza'],
+  'Carbonara':     ['carbonara'],
+  'Lasagna':       ['lasagna'],
+  'Risotto':       ['risotto'],
+  'Bolognese':     ['bolognese'],
+  'Gnocchi':       ['gnocchi'],
+  'Tiramisu':      ['tiramisu'],
+  'Panna Cotta':   ['panna cotta'],
+  'Focaccia':      ['focaccia'],
+  'Bruschetta':    ['bruschetta'],
+  'Pesto':         ['pesto'],
+  'Pad Thai':      ['pad thai'],
+  'Tom Yum':       ['tom yum'],
+  'Cà Ri':         ['cà ri', 'curry'],
+  'Cơm Rang':      ['cơm rang'],
+  'Xôi Xoài':      ['xôi xoài', 'sticky rice'],
+  'Gỏi Đu Đủ':     ['gỏi đu đủ', 'papaya'],
+  'Satay':         ['satay'],
+  'Tom Kha Gai':   ['tom kha'],
+  'Bánh Tôm':      ['bánh tôm'],
+};
 
 function normCuisine(raw: string | undefined): string {
   const c = (raw || '').toLowerCase();
@@ -41,7 +107,12 @@ function matchesFilter(r: Recipe, country: string, subCat: string): boolean {
   if (country === 'Tất cả') return true;
   if (normCuisine(r.cuisine) !== country) return false;
   if (subCat === 'Tất cả') return true;
-  return (r.category || '') === subCat;
+  if (country === 'Việt Nam') return (r.category || '') === subCat;
+  // International: keyword match in title + tags
+  const kws = INTL_KEYWORDS[subCat];
+  if (!kws) return true;
+  const combined = (r.title + ' ' + (r.tags ?? []).join(' ')).toLowerCase();
+  return kws.some(kw => combined.includes(kw));
 }
 
 // Pick first N recipes from each category, then fill the rest — ensures variety
@@ -234,14 +305,14 @@ export function HomeScreen() {
             ))}
           </ScrollView>
 
-          {/* Level 2: Sub-categories (Việt Nam only) */}
-          {country === 'Việt Nam' && (
+          {/* Level 2: Sub-categories (per country) */}
+          {SUBCATS[country] && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.chips}
             >
-              {VN_SUBCATS.map(c => (
+              {SUBCATS[country].map(c => (
                 <TouchableOpacity
                   key={c}
                   style={[s.chip, s.chipSub, subCat === c && s.chipSubActive]}
