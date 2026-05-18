@@ -178,7 +178,6 @@ router.post('/chat', authMiddleware, async (req, res) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      tools: [{ googleSearch: {} }],
     });
 
     let restaurantContext = '';
@@ -207,7 +206,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     const msg = err.message || '';
-    console.error('Gemini error:', msg);
+    console.error('Gemini error:', err);
     if (msg.includes('429') || msg.includes('Too Many Requests')) {
       return res.status(429).json({ message: 'Đang bận, thử lại sau vài giây nhé!' });
     }
