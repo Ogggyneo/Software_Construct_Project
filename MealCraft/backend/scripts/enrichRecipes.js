@@ -1,136 +1,125 @@
 /**
- * AI Enrichment — fills in missing cook_time_min, calories_per_serving, servings
- * for recipes that still have default/zero values, using Gemini.
+ * AI enrichment — fills missing cook_time_min, calories_per_serving, servings
+ * for ALL eligible recipes using Gemini, processed in automatic batches.
  *
  * Usage:
  *   MONGODB_URI="mongodb+srv://..." GEMINI_API_KEY="..." node scripts/enrichRecipes.js
  *
  * Env overrides:
- *   BATCH_SIZE  - recipes per Gemini batch prompt (default 10)
- *   DELAY_MS    - ms between API calls             (default 1000)
- *   DRY_RUN     - set to "1" to log without saving (default off)
+ *   DELAY_MS    - ms between Gemini calls (default 4000 to stay within free-tier 15 RPM)
+ *   CHUNK       - DB fetch chunk size     (default 100)
  */
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Recipe = require('../src/models/Recipe');
 
-const BATCH_SIZE = parseInt(process.env.BATCH_SIZE || '10');
-const DELAY_MS   = parseInt(process.env.DELAY_MS   || '1000');
-const DRY_RUN    = process.env.DRY_RUN === '1';
+const DELAY_MS = parseInt(process.env.DELAY_MS || '4000');
+const CHUNK    = parseInt(process.env.CHUNK    || '100');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function buildPrompt(recipes) {
-  const list = recipes.map((r, i) => {
-    const ingredients = (r.ingredients || []).slice(0, 12).map(ing =>
-      [ing.quantity, ing.unit, ing.name].filter(Boolean).join(' ')
-    ).join(', ');
-    return `${i + 1}. "${r.title}" | Ingredients: ${ingredients || 'unknown'}`;
-  }).join('\n');
+async function estimateWithAI(model, recipe) {
+  const ingredientList = (recipe.ingredients ?? [])
+    .slice(0, 20)
+    .map(i => [i.quantity, i.unit, i.name].filter(Boolean).join(' '))
+    .join(', ');
 
-  return `You are a culinary expert. For each recipe below, estimate realistic values.
-Return ONLY a JSON array (no markdown, no explanation) with exactly ${recipes.length} objects in the same order.
-Each object must have:
-  - "cook_time_min": integer (active cooking time in minutes, NOT total time, typical home cook)
-  - "calories_per_serving": integer (kcal per serving, realistic estimate)
-  - "servings": integer (1-8, typical serving size for this dish)
+  const prompt = `Bạn là chuyên gia dinh dưỡng và đầu bếp. Dựa vào tên món và nguyên liệu sau, hãy ước tính:
+- cook_time_min: thời gian nấu thực tế (phút, không tính chuẩn bị), số nguyên
+- calories_per_serving: calo mỗi khẩu phần, số nguyên
+- servings: số khẩu phần (1-8), số nguyên
 
-Rules:
-- Simple dishes (salad, fried egg): 5-15 min, 150-400 kcal
-- Medium dishes (stir-fry, soup): 15-40 min, 300-600 kcal
-- Complex dishes (braise, stew, lasagna): 45-120 min, 400-800 kcal
-- Desserts/drinks: estimate based on ingredients
-- If truly uncertain, use: cook_time_min=20, calories_per_serving=350, servings=2
+Tên món: ${recipe.title}
+Nguyên liệu: ${ingredientList || 'không có thông tin'}
 
-Recipes:
-${list}`;
-}
+Chỉ trả về JSON thuần, không giải thích, không markdown:
+{"cook_time_min": <số>, "calories_per_serving": <số>, "servings": <số>}`;
 
-async function enrichBatch(model, recipes) {
-  const prompt = buildPrompt(recipes);
   try {
     const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    // Strip markdown fences if present
-    const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-    const parsed = JSON.parse(json);
-    if (!Array.isArray(parsed) || parsed.length !== recipes.length) {
-      throw new Error(`Expected array of ${recipes.length}, got ${parsed.length ?? typeof parsed}`);
-    }
-    return parsed;
-  } catch (err) {
-    console.warn(`  ⚠️  Gemini parse error: ${err.message}`);
+    const text = result.response.text().trim().replace(/```json|```/g, '').trim();
+    const json = JSON.parse(text);
+    const cook = parseInt(json.cook_time_min);
+    const kcal = parseInt(json.calories_per_serving);
+    const serv = parseInt(json.servings);
+    if (isNaN(cook) || isNaN(kcal) || isNaN(serv)) return null;
+    if (cook < 1 || cook > 480) return null;
+    if (kcal < 10 || kcal > 3000) return null;
+    if (serv < 1 || serv > 20) return null;
+    return { cook_time_min: cook, calories_per_serving: kcal, servings: serv };
+  } catch {
     return null;
   }
 }
 
 async function main() {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/mealcraft';
-  await mongoose.connect(uri);
-  console.log('✅ MongoDB connected');
-
+  const uri    = process.env.MONGODB_URI || 'mongodb://localhost:27017/mealcraft';
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) { console.error('❌ GEMINI_API_KEY not set'); process.exit(1); }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  await mongoose.connect(uri);
+  console.log('✅ MongoDB connected\n');
 
-  // Target: recipes missing kcal OR using the default fallback cook time of exactly 30
-  const query = {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+  const total = await Recipe.countDocuments({
     is_public: true,
     $or: [
       { calories_per_serving: { $in: [0, null] } },
-      { cook_time_min: { $in: [0, null, 30] } },
+      { cook_time_min: 30 },
     ],
-  };
+  });
 
-  const total = await Recipe.countDocuments(query);
-  console.log(`📋 ${total} recipes to enrich${DRY_RUN ? ' (DRY RUN)' : ''}\n`);
+  console.log(`📋 ${total} recipes need enrichment`);
+  console.log(`⏱  Estimated time: ~${Math.ceil(total * DELAY_MS / 60000)} minutes at ${DELAY_MS}ms/request\n`);
+  console.log('Press Ctrl+C at any time to stop — progress is saved to DB.\n');
 
-  let updated = 0;
-  let skip = 0;
+  let updated = 0, failed = 0, skip = 0;
+  const startTime = Date.now();
 
-  while (skip < total) {
-    const recipes = await Recipe.find(query)
+  while (true) {
+    const recipes = await Recipe.find({
+      is_public: true,
+      $or: [
+        { calories_per_serving: { $in: [0, null] } },
+        { cook_time_min: 30 },
+      ],
+    })
       .select('title ingredients cook_time_min calories_per_serving servings')
-      .skip(skip)
-      .limit(BATCH_SIZE)
+      .limit(CHUNK)
       .lean();
 
     if (!recipes.length) break;
 
-    console.log(`  🤖 Batch ${skip + 1}–${skip + recipes.length}...`);
-    const estimates = await enrichBatch(model, recipes);
-    await sleep(DELAY_MS);
+    for (const recipe of recipes) {
+      const pct = Math.round(((updated + failed) / total) * 100);
+      process.stdout.write(`  [${updated + failed + 1}/${total} ${pct}%] ${recipe.title.slice(0, 45).padEnd(45)} `);
 
-    if (!estimates) { skip += BATCH_SIZE; continue; }
+      const est = await estimateWithAI(model, recipe);
+      await sleep(DELAY_MS);
 
-    for (let i = 0; i < recipes.length; i++) {
-      const r = recipes[i];
-      const e = estimates[i];
-      if (!e) continue;
-
-      const update = {};
-      if (e.cook_time_min > 0)        update.cook_time_min = e.cook_time_min;
-      if (e.calories_per_serving > 0) update.calories_per_serving = e.calories_per_serving;
-      if (e.servings > 0)             update.servings = e.servings;
-
-      if (Object.keys(update).length === 0) continue;
-
-      const line = `    ✅ ${r.title} → ${update.cook_time_min ?? r.cook_time_min}min, ${update.calories_per_serving ?? r.calories_per_serving}kcal, ${update.servings ?? r.servings}người`;
-      console.log(line);
-
-      if (!DRY_RUN) {
-        await Recipe.updateOne({ _id: r._id }, { $set: update });
-        updated++;
+      if (!est) {
+        // Mark cook_time_min = 31 as sentinel so this recipe isn't retried endlessly
+        if (recipe.cook_time_min === 30) {
+          await Recipe.updateOne({ _id: recipe._id }, { $set: { cook_time_min: 31 } });
+        }
+        process.stdout.write('❌\n');
+        failed++;
+        continue;
       }
+
+      await Recipe.updateOne({ _id: recipe._id }, { $set: est });
+      process.stdout.write(`✅ ${String(est.cook_time_min).padStart(3)}min ${String(est.calories_per_serving).padStart(4)}kcal ×${est.servings}\n`);
+      updated++;
     }
 
-    skip += BATCH_SIZE;
+    skip += recipes.length;
   }
 
-  console.log(`\n🎉 Done! Enriched ${DRY_RUN ? '(dry run) ' : ''}${updated} recipes`);
+  const mins = ((Date.now() - startTime) / 60000).toFixed(1);
+  console.log(`\n🎉 Done in ${mins} min!  Updated: ${updated}  Failed: ${failed}`);
   await mongoose.disconnect();
 }
 

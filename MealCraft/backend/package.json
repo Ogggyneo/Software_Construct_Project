@@ -10,6 +10,7 @@
     "normalize:recipes": "node scripts/normalizeRecipes.js",
     "dedup:recipes": "node scripts/dedupRecipes.js",
     "scrape:intl": "node scripts/scrapeIntl.js",
+    "enrich:recipes": "node scripts/enrichRecipes.js",
     "enrich:recipes": "node scripts/enrichRecipes.js"
   },
   "keywords": [],

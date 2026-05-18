@@ -287,7 +287,7 @@ const s = StyleSheet.create({
   levelTitle: { fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 4 },
   levelTitleActive: { color: GREEN },
   levelDesc: { fontSize: 10, color: '#9ca3af', lineHeight: 14 },
-  prefRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  prefRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   prefChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#fff' },
   prefChipActive: { backgroundColor: GREEN, borderColor: GREEN },
   prefChipText: { fontSize: 12, color: '#6b7280', fontWeight: '600' },
