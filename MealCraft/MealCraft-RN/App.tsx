@@ -20,7 +20,8 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { RecommendedScreen } from './src/screens/RecommendedScreen';
 
 const Tab = createBottomTabNavigator();
-const HomeStack = createNativeStackNavigator();
+const HomeStack  = createNativeStackNavigator();
+const CookStack  = createNativeStackNavigator();
 const OrderStack = createNativeStackNavigator();
 
 const TAB_ICONS: Record<string, string> = {
@@ -38,6 +39,15 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="CookingMission" component={CookingMissionScreen} />
       <HomeStack.Screen name="Recommended" component={RecommendedScreen} />
     </HomeStack.Navigator>
+  );
+}
+
+function CookStackNavigator() {
+  return (
+    <CookStack.Navigator screenOptions={{ headerShown: false }}>
+      <CookStack.Screen name="Ingredients" component={IngredientsScreen} />
+      <CookStack.Screen name="MealDetail"  component={MealDetailScreen} />
+    </CookStack.Navigator>
   );
 }
 
@@ -71,7 +81,7 @@ function AppTabs() {
           })}
         >
           <Tab.Screen name="Khám phá" component={HomeStackNavigator} />
-          <Tab.Screen name="Nấu ăn"   component={IngredientsScreen} />
+          <Tab.Screen name="Nấu ăn"   component={CookStackNavigator} />
           <Tab.Screen name="Đặt món"  component={OrderStackNavigator} />
           <Tab.Screen name="Profile"  component={ProfileScreen} />
         </Tab.Navigator>
