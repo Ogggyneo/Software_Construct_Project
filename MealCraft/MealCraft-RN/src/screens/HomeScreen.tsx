@@ -44,10 +44,35 @@ function matchesFilter(r: Recipe, country: string, subCat: string): boolean {
   return (r.category || '') === subCat;
 }
 
+// Pick first N recipes from each category, then fill the rest — ensures variety
+function diversify(list: Recipe[], perCategory = 5): Recipe[] {
+  const buckets = new Map<string, Recipe[]>();
+  for (const r of list) {
+    const key = r.category || 'other';
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key)!.push(r);
+  }
+  const result: Recipe[] = [];
+  // Round-robin: take one from each category per pass
+  const keys = Array.from(buckets.keys());
+  for (let i = 0; i < perCategory; i++) {
+    for (const k of keys) {
+      const bucket = buckets.get(k)!;
+      if (bucket[i]) result.push(bucket[i]);
+    }
+  }
+  // Append remaining (respects user category filter later)
+  for (const r of list) {
+    if (!result.includes(r)) result.push(r);
+  }
+  return result;
+}
+
 export function HomeScreen() {
   const navigation = useNavigation<any>();
   const { token, userName } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recommended, setRecommended] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -57,8 +82,12 @@ export function HomeScreen() {
   const fetchRecipes = useCallback(async () => {
     if (!token) return;
     try {
-      const data = await apiFetch<{ recipes: Recipe[] }>('/api/recipes', token);
-      setRecipes(data.recipes ?? []);
+      const [allData, recData] = await Promise.all([
+        apiFetch<{ recipes: Recipe[] }>('/api/recipes', token),
+        apiFetch<{ recipes: Recipe[] }>('/api/recipes/recommended', token),
+      ]);
+      setRecipes(diversify(allData.recipes ?? []));
+      setRecommended(recData.recipes ?? []);
     } catch {} finally {
       setLoading(false);
       setRefreshing(false);
@@ -84,7 +113,10 @@ export function HomeScreen() {
     });
   };
 
-  const featured = recipes.slice(0, 6);
+  // 1 recipe per category for the featured row (max 8 shown)
+  const featured = recommended.length > 0
+    ? recommended
+    : diversify(recipes, 1).slice(0, 8);
   const filtered = recipes.filter(r =>
     matchesFilter(r, country, subCat) &&
     (!search || r.title.toLowerCase().includes(search.toLowerCase()))
@@ -149,7 +181,9 @@ export function HomeScreen() {
           <View style={s.section}>
             <View style={s.sectionHeader}>
               <Text style={s.sectionTitle}>Gợi ý cho bạn</Text>
-              <TouchableOpacity><Text style={s.seeMore}>Xem thêm ›</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Recommended')}>
+                <Text style={s.seeMore}>Xem thêm ›</Text>
+              </TouchableOpacity>
             </View>
             <ScrollView
               horizontal
