@@ -105,7 +105,11 @@ function normCuisine(raw: string | undefined): string {
 
 function matchesFilter(r: Recipe, country: string, subCat: string): boolean {
   if (country === 'Tất cả') return true;
-  if (normCuisine(r.cuisine) !== country) return false;
+  // Match against EITHER cuisine field OR category field (label badge)
+  // Handles VN-scraped intl recipes that have cuisine='Việt Nam' but category='Ý' etc.
+  const byCuisine  = normCuisine(r.cuisine);
+  const byCategory = normCuisine(r.category);
+  if (byCuisine !== country && byCategory !== country) return false;
   if (subCat === 'Tất cả') return true;
   if (country === 'Việt Nam') return (r.category || '') === subCat;
   // International: keyword match in title + tags
@@ -275,7 +279,7 @@ export function HomeScreen() {
                         <Text style={s.featuredTagText} numberOfLines={1}>{item.category}</Text>
                       </View>
                     ) : null}
-                    <Text style={s.featuredTitle} numberOfLines={2}>{item.title}</Text>
+                    <Text style={s.featuredTitle} numberOfLines={1}>{item.title}</Text>
                     <Text style={s.featuredMeta}>⏱ {item.cook_time_min || '--'} phút  🔥 {item.calories_per_serving || '--'} kcal</Text>
                   </View>
                 </TouchableOpacity>
@@ -402,13 +406,14 @@ const s = StyleSheet.create({
   featuredImage: { width: '100%', height: '100%' },
   featuredOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 12,
+    height: 76, padding: 10, overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.52)',
     borderBottomLeftRadius: 18, borderBottomRightRadius: 18,
+    justifyContent: 'flex-end',
   },
   featuredTag: {
     alignSelf: 'flex-start', backgroundColor: GREEN, borderRadius: 6,
-    paddingHorizontal: 7, paddingVertical: 2, marginBottom: 5, maxWidth: 120,
+    paddingHorizontal: 7, paddingVertical: 2, marginBottom: 4, maxWidth: 120,
   },
   featuredTagText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   featuredTitle: { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 3 },
