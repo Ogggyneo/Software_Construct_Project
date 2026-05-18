@@ -140,8 +140,8 @@ async function buildRestaurantContext(message) {
 function buildProfileContext(profile) {
   if (!profile) return '';
   const lines = [];
-  if (profile.name)        lines.push(`- Tên: ${profile.name}`);
-  if (profile.location)    lines.push(`- Khu vực: ${profile.location}`);
+  if (profile.name) lines.push(`- Tên: ${profile.name}`);
+  if (profile.location) lines.push(`- Khu vực: ${profile.location}`);
   if (profile.cookingLevel) {
     const lvl = { beginner: 'Mới bắt đầu', 'home-cook': 'Nấu cơ bản', advanced: 'Thành thạo' };
     lines.push(`- Trình độ nấu ăn: ${lvl[profile.cookingLevel] || profile.cookingLevel}`);
@@ -177,7 +177,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
     });
 
     let restaurantContext = '';
