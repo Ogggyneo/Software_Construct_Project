@@ -103,9 +103,19 @@ router.post('/:group_id/join', authMiddleware, async (req, res) => {
 router.delete('/:group_id/leave', authMiddleware, async (req, res) => {
   const user_id = req.user.user_id;
   try {
-    await Group.findByIdAndUpdate(req.params.group_id, {
-      $pull: { members: { user_id } },
-    });
+    const group = await Group.findById(req.params.group_id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const before = group.members.length;
+    group.members = group.members.filter(m => m.user_id.toString() !== user_id.toString());
+
+    if (group.members.length === before)
+      return res.status(400).json({ message: 'You are not a member of this group' });
+
+    // Close group if no members left
+    if (group.members.length === 0) group.status = 'closed';
+
+    await group.save();
     res.json({ message: 'Left group successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to leave group' });

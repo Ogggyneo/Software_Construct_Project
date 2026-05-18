@@ -46,6 +46,11 @@ const SUBCATS: Record<string, string[]> = {
     'Xôi Xoài', 'Lẩu', 'Gỏi Đu Đủ', 'Satay',
     'Tom Kha Gai', 'Gà Sốt', 'Bánh Tôm',
   ],
+  'Trung Hoa': [
+    'Tất cả', 'Dimsum', 'Há Cảo', 'Cơm Chiên', 'Mì Xào',
+    'Vịt Tiềm', 'Sủi Cảo', 'Cha Siu', 'Lẩu Trung Hoa',
+    'Xíu Mại', 'Hoành Thánh',
+  ],
 };
 
 // Keywords to match in title+tags for each international subcategory
@@ -90,6 +95,17 @@ const INTL_KEYWORDS: Record<string, string[]> = {
   'Satay':         ['satay'],
   'Tom Kha Gai':   ['tom kha'],
   'Bánh Tôm':      ['bánh tôm'],
+  // Trung Hoa
+  'Dimsum':        ['dimsum'],
+  'Há Cảo':        ['há cảo'],
+  'Cơm Chiên':     ['cơm chiên'],
+  'Mì Xào':        ['mì xào'],
+  'Vịt Tiềm':      ['vịt tiềm'],
+  'Sủi Cảo':       ['sủi cảo'],
+  'Cha Siu':        ['cha siu'],
+  'Lẩu Trung Hoa': ['lẩu trung hoa', 'lẩu trung'],
+  'Xíu Mại':       ['xíu mại'],
+  'Hoành Thánh':   ['hoành thánh'],
 };
 
 function normCuisine(raw: string | undefined): string {

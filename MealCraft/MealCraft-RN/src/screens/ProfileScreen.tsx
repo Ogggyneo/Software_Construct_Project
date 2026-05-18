@@ -14,7 +14,7 @@ const COOKING_LEVELS = [
 ];
 
 const PREFERENCE_OPTIONS = [
-  'Món Việt', 'Món Hàn', 'Món Nhật', 'Món Ý',
+  'Món Việt', 'Món Hàn', 'Món Nhật', 'Món Ý', 'Món Trung',
   'Healthy', 'Ăn chay', 'Ít cay', 'Nhiều protein', 'Món nhanh', 'Đồ ngọt',
 ];
 
@@ -95,7 +95,7 @@ export function ProfileScreen() {
 
   const CUISINE_MAP: Record<string, string> = {
     'Món Việt': 'Việt Nam', 'Món Hàn': 'Hàn Quốc',
-    'Món Nhật': 'Nhật Bản', 'Món Ý': 'Ý',
+    'Món Nhật': 'Nhật Bản', 'Món Ý': 'Ý', 'Món Trung': 'Trung Hoa',
   };
 
   const saveProfile = async () => {
@@ -176,7 +176,7 @@ export function ProfileScreen() {
           <View style={s.prefRow}>
             {PREFERENCE_OPTIONS.map(item => (
               <TouchableOpacity key={item} style={[s.prefChip, preferences.includes(item) && s.prefChipActive]} onPress={() => togglePreference(item)}>
-                <Text style={[s.prefChipText, preferences.includes(item) && s.prefChipTextActive]}>❤ {item}</Text>
+                <Text style={[s.prefChipText, preferences.includes(item) && s.prefChipTextActive]}>{item}</Text>
               </TouchableOpacity>
             ))}
           </View>

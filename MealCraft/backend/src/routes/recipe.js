@@ -41,16 +41,71 @@ router.get('/recommended', authMiddleware, async (req, res) => {
     const dietary   = user?.preferences?.dietary   ?? [];
     const allergies = user?.preferences?.allergies ?? [];
 
+    const INTL_CUISINES = ['Ý', 'Hàn Quốc', 'Nhật Bản', 'Thái Lan', 'Trung Hoa'];
+
+    const andClauses = [];
     const query = { is_public: true };
-    if (cuisines.length) query.cuisine = { $in: cuisines };
-    if (dietary.some(d => /vegetarian|vegan|chay/i.test(d))) {
-      query.$or = [
-        { category: 'Ăn chay' },
-        { tags: { $elemMatch: { $regex: 'chay', $options: 'i' } } },
-      ];
+
+    // ── Cuisine filter ────────────────────────────────────────────────────────
+    if (cuisines.length) {
+      const onlyVN = cuisines.includes('Việt Nam') &&
+                     !cuisines.some(c => INTL_CUISINES.includes(c));
+      if (onlyVN) {
+        // Vietnamese-only: cuisine field must be VN, exclude misclassified intl recipes
+        query.cuisine = 'Việt Nam';
+        query.category = { $nin: INTL_CUISINES };
+      } else {
+        // Match by cuisine OR by category (handles recipes where old normalize set cuisine→VN)
+        andClauses.push({
+          $or: [
+            { cuisine: { $in: cuisines } },
+            { category: { $in: cuisines } },
+          ],
+        });
+      }
     }
 
-    // Diverse sample: up to 4 per category, then pick 20 randomly
+    // ── Dietary: vegetarian / vegan ───────────────────────────────────────────
+    if (dietary.some(d => /vegetarian|vegan|chay/i.test(d))) {
+      andClauses.push({
+        $or: [
+          { category: 'Ăn chay' },
+          { tags: { $elemMatch: { $regex: 'chay', $options: 'i' } } },
+        ],
+      });
+    }
+
+    // ── Dietary: healthy — exclude heavy/dessert categories ───────────────────
+    if (dietary.some(d => /healthy|eatclean|eat.?clean|ít béo|low.?fat/i.test(d))) {
+      const excludeCats = [...(query.category?.$nin ?? []), 'Đồ ngọt', 'Đồ ăn vặt'];
+      query.category = { ...(query.category ?? {}), $nin: excludeCats };
+    }
+
+    if (andClauses.length) query.$and = andClauses;
+
+    // ── Allergen keyword map (Vietnamese ingredient names) ────────────────────
+    const ALLERGEN_MAP = {
+      'gluten':    ['gluten', 'bột mì', 'lúa mì', 'wheat', 'mì ống'],
+      'lúa mì':   ['gluten', 'bột mì', 'lúa mì', 'wheat', 'mì ống'],
+      'sữa':      ['sữa', 'cream', 'bơ', 'phô mai', 'cheese', 'yogurt', 'whipping'],
+      'lactose':  ['sữa', 'cream', 'bơ', 'phô mai', 'cheese', 'yogurt'],
+      'trứng':    ['trứng'],
+      'đậu phộng':['đậu phộng', 'lạc', 'peanut'],
+      'hải sản':  ['tôm', 'cua', 'mực', 'nghêu', 'sò', 'ốc', 'shellfish'],
+      'hạt cây':  ['hạt điều', 'hạt dẻ', 'hạnh nhân', 'óc chó', 'macadamia', 'hạt thông', 'cashew', 'almond', 'walnut', 'pecan'],
+      'đậu nành': ['đậu nành', 'soy', 'tofu', 'đậu hũ', 'đậu phụ', 'tương'],
+      'mè':       ['mè', 'vừng', 'sesame'],
+      'vừng':     ['mè', 'vừng', 'sesame'],
+      'hành':     ['hành'],
+      'tỏi':      ['tỏi'],
+      'ớt':       ['ớt', 'chili'],
+      'ngò':      ['ngò', 'rau mùi', 'cilantro'],
+      'sả':       ['sả'],
+      'nước mắm': ['nước mắm', 'mắm'],
+      'nấm':      ['nấm'],
+    };
+
+    // Diverse sample: up to 4 per category, then pick 40 randomly
     let recipes = await Recipe.aggregate([
       { $match: query },
       { $sort: { createdAt: -1 } },
@@ -73,9 +128,17 @@ router.get('/recommended', authMiddleware, async (req, res) => {
       { $sample: { size: 40 } },
     ]);
 
+    // Post-filter: remove recipes containing allergen ingredients
     if (allergies.length) {
-      const keywords = allergies
-        .flatMap(a => a.toLowerCase().split(/[/\s&,()]+/).filter(w => w.length > 2));
+      const keywords = [...new Set(
+        allergies.flatMap(a => {
+          const lower = a.toLowerCase();
+          for (const [key, vals] of Object.entries(ALLERGEN_MAP)) {
+            if (lower.includes(key)) return vals;
+          }
+          return lower.split(/[/\s&,()]+/).filter(w => w.length > 2);
+        })
+      )];
       recipes = recipes.filter(r =>
         !(r.ingredients ?? []).some(ing =>
           keywords.some(kw => (ing.name ?? '').toLowerCase().includes(kw))
