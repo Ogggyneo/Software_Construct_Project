@@ -8,7 +8,8 @@
     "seed:restaurants": "node scripts/seedRestaurants.js",
     "scrape:recipes": "node scripts/scrapeRecipes.js",
     "normalize:recipes": "node scripts/normalizeRecipes.js",
-    "dedup:recipes": "node scripts/dedupRecipes.js"
+    "dedup:recipes": "node scripts/dedupRecipes.js",
+    "scrape:intl": "node scripts/scrapeIntl.js"
   },
   "keywords": [],
   "author": "",

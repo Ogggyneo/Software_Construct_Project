@@ -18,67 +18,80 @@ function normalizeTitle(title) {
 }
 
 function classifyRecipe(title, tags) {
-  const lower = (title + ' ' + (tags || []).join(' ')).toLowerCase();
+  const t = title.toLowerCase();                              // title only
+  const combined = (title + ' ' + (tags || []).join(' ')).toLowerCase(); // title + tags
 
-  // ── International (check before Vietnamese to avoid mis-classifying) ─────────
-  if (/pizza|pasta|spaghetti|mì ý|lasagna|risotto|gnocchi|carbonara/.test(lower))
+  // ── International — dish keywords or explicit country tag ────────────────────
+  if (/pizza|pasta|spaghetti|mì ý|lasagna|risotto|gnocchi|carbonara|pesto|focaccia|bruschetta/.test(combined)
+      || /\bý\b|italia/.test(combined))
     return { cuisine: 'Ý', category: 'Pizza & Pasta' };
-  if (/sushi|sashimi|ramen|udon|miso|onigiri|tempura|gyoza|takoyaki/.test(lower))
+
+  if (/sushi|sashimi|ramen|udon|miso|onigiri|tempura|gyoza|takoyaki|okonomiyaki|teriyaki|karaage|katsudon|donburi/.test(combined)
+      || /nhật bản/.test(combined))
     return { cuisine: 'Nhật Bản', category: 'Nhật Bản' };
-  if (/kimchi|tteok|bibimbap|samgyeopsal|ramyeon|japchae|kimbap|bulgogi/.test(lower))
+
+  if (/kimchi|tteok|bibimbap|samgyeopsal|ramyeon|japchae|kimbap|bulgogi|galbi|doenjang|sundubu|hotteok/.test(combined)
+      || /hàn quốc/.test(combined))
     return { cuisine: 'Hàn Quốc', category: 'Hàn Quốc' };
-  if (/dimsum|há cảo|sủi cảo|cha siu|vịt tiềm|mì trứng hoa/.test(lower))
+
+  if (/dimsum|há cảo|sủi cảo|cha siu|vịt tiềm/.test(combined)
+      || /trung hoa/.test(combined))
     return { cuisine: 'Trung Hoa', category: 'Trung Hoa' };
-  if (/pad thai|tom yum|curry thái|massaman|larb/.test(lower))
+
+  if (/pad thai|tom yum|tom kha|massaman|larb|satay|papaya salad|som tam/.test(combined)
+      || /thái lan/.test(combined))
     return { cuisine: 'Thái Lan', category: 'Thái Lan' };
 
-  // ── Vietnamese desserts & sweet dishes ──────────────────────────────────────
-  if (/chè|flan|pudding|tiramisu|mousse|cheesecake|kem tươi|bánh kem|mochi|thạch|sữa chua|bánh trôi|bánh ít|bánh dẻo/.test(lower))
+  // ── Vietnamese desserts ──────────────────────────────────────────────────────
+  if (/chè|flan|pudding|mousse|cheesecake|kem tươi|bánh kem|mochi|thạch|sữa chua|bánh trôi|bánh ít|bánh dẻo/.test(combined))
     return { cuisine: 'Việt Nam', category: 'Chè & Tráng miệng' };
 
-  // ── Hot-pot ─────────────────────────────────────────────────────────────────
-  if (/lẩu/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Lẩu' };
+  // ── From here: use TITLE only to avoid tags polluting category ───────────────
 
-  // ── Noodle soups ─────────────────────────────────────────────────────────────
-  if (/phở|bún bò|bún riêu|bún mắm|bún cá|bún hải sản|bún thịt|miến|hủ tiếu|bánh canh/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Phở & Bún' };
-
-  // ── Sticky rice ──────────────────────────────────────────────────────────────
-  if (/xôi/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Xôi' };
-
-  // ── Tofu ─────────────────────────────────────────────────────────────────────
-  if (/tàu hũ|đậu hũ|đậu phụ/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Đậu hũ' };
-
-  // ── Soup / broth ──────────────────────────────────────────────────────────────
-  if (/canh|súp/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Canh & Súp' };
-
-  // ── Chicken ──────────────────────────────────────────────────────────────────
-  if (/gà/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Gà' };
-
-  // ── Savory bread & pancakes ──────────────────────────────────────────────────
-  if (/bánh mì|bánh xèo|bánh cuốn|bánh ướt|bánh bèo|bánh bao|bánh tráng/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Bánh' };
-
-  // ── Seafood ───────────────────────────────────────────────────────────────────
-  if (/tôm|mực|hải sản|cua|ghẹ|sò|ngao| cá /.test(lower) || /^cá /.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Hải sản' };
-
-  // ── Vegetarian ────────────────────────────────────────────────────────────────
-  if (/chay/.test(lower))
+  // Ăn chay — BEFORE đậu hũ (chay is stronger signal than individual tofu ingredients)
+  if (/chay/.test(t))
     return { cuisine: 'Việt Nam', category: 'Ăn chay' };
 
-  // ── Snack ─────────────────────────────────────────────────────────────────────
-  if (/ăn vặt|snack|bánh tráng trộn/.test(lower))
-    return { cuisine: 'Việt Nam', category: 'Đồ ăn vặt' };
-
-  // ── Rice dishes ───────────────────────────────────────────────────────────────
-  if (/cơm/.test(lower))
+  // Cơm — title-first: cơm + chay/đậu/canh tags → still Cơm
+  if (/cơm/.test(t))
     return { cuisine: 'Việt Nam', category: 'Cơm' };
+
+  // Lẩu
+  if (/lẩu/.test(t))
+    return { cuisine: 'Việt Nam', category: 'Lẩu' };
+
+  // Phở & Bún
+  if (/phở|bún bò|bún riêu|bún mắm|bún cá|bún hải sản|bún thịt|miến|hủ tiếu|bánh canh/.test(t))
+    return { cuisine: 'Việt Nam', category: 'Phở & Bún' };
+
+  // Xôi
+  if (/xôi/.test(t))
+    return { cuisine: 'Việt Nam', category: 'Xôi' };
+
+  // Canh & Súp — title only
+  if (/canh|súp/.test(t))
+    return { cuisine: 'Việt Nam', category: 'Canh & Súp' };
+
+  // Gà — title only
+  if (/gà/.test(t))
+    return { cuisine: 'Việt Nam', category: 'Gà' };
+
+  // Đậu hũ — combined ok here (less common false positive)
+  if (/tàu hũ|đậu hũ|đậu phụ/.test(combined))
+    return { cuisine: 'Việt Nam', category: 'Đậu hũ' };
+
+  // Ăn chay from tags (e.g. recipe not named "chay" but tagged "ăn chay")
+  if (/chay/.test(combined))
+    return { cuisine: 'Việt Nam', category: 'Ăn chay' };
+
+  if (/bánh mì|bánh xèo|bánh cuốn|bánh ướt|bánh bèo|bánh bao|bánh tráng/.test(combined))
+    return { cuisine: 'Việt Nam', category: 'Bánh' };
+
+  if (/tôm|mực|hải sản|cua|ghẹ|sò|ngao| cá /.test(combined) || /^cá /.test(t))
+    return { cuisine: 'Việt Nam', category: 'Hải sản' };
+
+  if (/ăn vặt|snack|bánh tráng trộn/.test(combined))
+    return { cuisine: 'Việt Nam', category: 'Đồ ăn vặt' };
 
   return { cuisine: 'Việt Nam', category: 'Cơm & Mì' };
 }

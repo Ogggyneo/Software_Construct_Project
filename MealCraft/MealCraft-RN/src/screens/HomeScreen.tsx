@@ -205,7 +205,7 @@ export function HomeScreen() {
                       </View>
                     ) : null}
                     <Text style={s.featuredTitle} numberOfLines={2}>{item.title}</Text>
-                    <Text style={s.featuredMeta}>⏱ {item.cook_time_min} phút  🔥 {item.calories_per_serving} kcal</Text>
+                    <Text style={s.featuredMeta}>⏱ {item.cook_time_min || '--'} phút  🔥 {item.calories_per_serving || '--'} kcal</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -277,8 +277,8 @@ export function HomeScreen() {
                   <View style={s.cardBody}>
                     <Text style={s.cardTitle} numberOfLines={2}>{item.title}</Text>
                     <View style={s.cardMeta}>
-                      <Text style={s.metaText}>⏱ {item.cook_time_min} phút</Text>
-                      <Text style={s.metaText}>🔥 {item.calories_per_serving} kcal</Text>
+                      <Text style={s.metaText}>⏱ {item.cook_time_min || '--'} phút</Text>
+                      <Text style={s.metaText}>🔥 {item.calories_per_serving || '--'} kcal</Text>
                     </View>
                   </View>
                 </TouchableOpacity>

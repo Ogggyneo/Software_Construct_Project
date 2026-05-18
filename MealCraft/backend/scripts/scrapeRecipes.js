@@ -158,7 +158,28 @@ async function scrapeRecipe(url) {
 
   const tags = typeof data.keywords === 'string'
     ? data.keywords.split(',').map(t => t.trim()).filter(Boolean)
-    : [];
+    : (Array.isArray(data.keywords) ? data.keywords.map(t => String(t).trim()).filter(Boolean) : []);
+
+  // Cook time: prefer cookTime, fall back to totalTime - prepTime
+  const cookMin = isoDuration(data.cookTime);
+  const totalMin = isoDuration(data.totalTime);
+  const prepMin = isoDuration(data.prepTime);
+  const cook_time_min = cookMin || (totalMin > prepMin ? totalMin - prepMin : totalMin) || 30;
+
+  // Servings: recipeYield can be "4 người" or "4" or ["4 servings"]
+  let servings = 2;
+  if (data.recipeYield) {
+    const y = Array.isArray(data.recipeYield) ? data.recipeYield[0] : data.recipeYield;
+    const n = parseInt(String(y).replace(/[^\d]/g, ''));
+    if (!isNaN(n) && n > 0 && n <= 20) servings = n;
+  }
+
+  // Calories: JSON-LD nutrition.calories is sometimes "350 kcal" or just "350"
+  let calories_per_serving = 0;
+  if (data.nutrition?.calories) {
+    const n = parseInt(String(data.nutrition.calories).replace(/[^\d]/g, ''));
+    if (!isNaN(n) && n > 0) calories_per_serving = n;
+  }
 
   return {
     title:        data.name.trim(),
@@ -166,10 +187,10 @@ async function scrapeRecipe(url) {
     category:     inferCategory(data.name, tags),
     cuisine:      'Việt Nam',
     image_url,
-    cook_time_min:  isoDuration(data.cookTime) || isoDuration(data.totalTime) || 30,
-    prep_time_min:  isoDuration(data.prepTime) || 10,
-    servings:       parseInt(data.recipeYield) || 2,
-    calories_per_serving: 0,
+    cook_time_min,
+    prep_time_min:  prepMin || 10,
+    servings,
+    calories_per_serving,
     tags,
     ingredients,
     steps,

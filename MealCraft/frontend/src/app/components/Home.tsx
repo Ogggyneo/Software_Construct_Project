@@ -606,38 +606,45 @@ const recipes: Recipe[] = [
   },
 ];
 
+function mapApiRecipe(r: any): Recipe {
+  return {
+    id: r._id ?? r.recipe_id,
+    name: r.title ?? r.name ?? '',
+    category: r.category || '',
+    image: r.image_url || '',
+    time: r.cook_time_min ? `${r.cook_time_min} phút` : (r.cook_time || ''),
+    calories: r.calories_per_serving ? `${r.calories_per_serving} kcal` : (r.kcal ? `${r.kcal} kcal` : ''),
+    badge: (r.tags?.[0] ?? r.category) || '',
+    description: r.description || '',
+    servings: r.servings ? `${r.servings} người` : '',
+    ingredients: [],
+    steps: [],
+  };
+}
+
 export function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const { mode } = useMode();
   const { token } = useAuth();
   const [apiRecipes, setApiRecipes] = useState<Recipe[]>([]);
+  const [recommendedRecipes, setRecommendedRecipes] = useState<Recipe[]>([]);
 
   useEffect(() => {
     if (!token) return;
-    apiFetch<{ recipes: any[] }>('/api/recipes', token)
-      .then(data => {
-        if (data.recipes?.length > 0) {
-          setApiRecipes(data.recipes.map((r: any) => ({
-            id: r._id ?? r.recipe_id,
-            name: r.title ?? r.name ?? '',
-            category: r.category || '',
-            image: r.image_url || '',
-            time: r.cook_time_min ? `${r.cook_time_min} phút` : (r.cook_time || ''),
-            calories: r.calories_per_serving ? `${r.calories_per_serving} kcal` : (r.kcal ? `${r.kcal} kcal` : ''),
-            badge: (r.tags?.[0] ?? r.category) || '',
-            description: r.description || '',
-            servings: r.servings ? `${r.servings} người` : '',
-            ingredients: [],
-            steps: [],
-          })));
-        }
-      })
-      .catch(() => {});
+    Promise.all([
+      apiFetch<{ recipes: any[] }>('/api/recipes', token),
+      apiFetch<{ recipes: any[] }>('/api/recipes/recommended', token),
+    ]).then(([allData, recData]) => {
+      if (allData.recipes?.length > 0) setApiRecipes(allData.recipes.map(mapApiRecipe));
+      if (recData.recipes?.length > 0) setRecommendedRecipes(recData.recipes.map(mapApiRecipe));
+    }).catch(() => {});
   }, [token]);
 
   const displayRecipes = apiRecipes.length > 0 ? apiRecipes : recipes;
-  const suggestedDishes = displayRecipes.slice(0, 4);
+  const suggestedDishes = recommendedRecipes.length > 0
+    ? recommendedRecipes.slice(0, 4)
+    : displayRecipes.slice(0, 4);
 
   const filteredDishes =
     activeTab === 'asian'
@@ -683,7 +690,10 @@ export function Home() {
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold">Gợi ý cho bạn</h3>
-              <button className="text-green-500 font-medium flex items-center gap-1 hover:gap-2 transition-all">
+              <button
+                onClick={() => navigate('/recommended')}
+                className="text-green-500 font-medium flex items-center gap-1 hover:gap-2 transition-all"
+              >
                 Xem thêm
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -802,7 +812,10 @@ export function Home() {
       <div className="mb-6">
         <div className="flex items-center justify-between px-4 mb-3">
           <h3 className="font-bold">Gợi ý cho bạn</h3>
-          <button className="text-green-500 text-sm flex items-center gap-1">
+          <button
+            onClick={() => navigate('/recommended')}
+            className="text-green-500 text-sm flex items-center gap-1"
+          >
             Xem thêm
             <ChevronRight className="w-4 h-4" />
           </button>

@@ -17,6 +17,7 @@ import { CreateGroupScreen } from './src/screens/CreateGroupScreen';
 import { GroupChatScreen } from './src/screens/GroupChatScreen';
 import { AIChatScreen } from './src/screens/AIChatScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { RecommendedScreen } from './src/screens/RecommendedScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
@@ -35,6 +36,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="Home" component={HomeScreen} />
       <HomeStack.Screen name="MealDetail" component={MealDetailScreen} />
       <HomeStack.Screen name="CookingMission" component={CookingMissionScreen} />
+      <HomeStack.Screen name="Recommended" component={RecommendedScreen} />
     </HomeStack.Navigator>
   );
 }

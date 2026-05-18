@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../api';
 
 const COOKING_LEVELS = [
   { id: 'beginner', title: 'Mới bắt đầu', desc: 'Ít kinh nghiệm, cần hướng dẫn rõ' },
@@ -44,7 +45,7 @@ const ALLERGENS = [
 const STORAGE_KEY = 'mealcraftUserProfile';
 
 export function ProfileScreen() {
-  const { userName, logout } = useAuth();
+  const { userName, logout, token } = useAuth();
   const [name, setName] = useState(userName ?? '');
   const toastAnim = useRef(new Animated.Value(0)).current;
 
@@ -92,8 +93,23 @@ export function ProfileScreen() {
     );
   };
 
+  const CUISINE_MAP: Record<string, string> = {
+    'Món Việt': 'Việt Nam', 'Món Hàn': 'Hàn Quốc',
+    'Món Nhật': 'Nhật Bản', 'Món Ý': 'Ý',
+  };
+
   const saveProfile = async () => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ name, email, location, cookingLevel, mealHabit, cookFreq, preferences, allergies }));
+    if (token) {
+      const cuisines = preferences.filter(p => CUISINE_MAP[p]).map(p => CUISINE_MAP[p]);
+      const dietary: string[] = [];
+      if (preferences.includes('Ăn chay') || mealHabit === 'vegetarian') dietary.push('chay');
+      if (preferences.includes('Healthy') || mealHabit === 'healthy') dietary.push('healthy');
+      apiFetch('/api/auth/preferences', token, {
+        method: 'PUT',
+        body: JSON.stringify({ cuisines, dietary, allergies }),
+      }).catch(() => {});
+    }
     showToast();
   };
 

@@ -12,6 +12,7 @@ import { ComingSoon } from "./components/CommingSoon";
 import { CookingMission } from "./components/CookingMission";
 import { CreateGroup } from "./components/CreateGroup";
 import { Profile } from "./components/Profile";
+import { RecommendedRecipes } from "./components/RecommendedRecipes";
 
 export const router = createBrowserRouter([
   // Default redirect
@@ -67,6 +68,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <MealDetail />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/recommended",
+    element: (
+      <ProtectedRoute>
+        <RecommendedRecipes />
       </ProtectedRoute>
     ),
   },
