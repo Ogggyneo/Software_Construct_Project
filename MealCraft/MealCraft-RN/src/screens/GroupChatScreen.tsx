@@ -173,8 +173,9 @@ export function GroupChatScreen() {
       await apiFetch(`/api/group/${groupId}/leave`, token, { method: 'DELETE' });
       navigation.navigate('OrderFood');
     } catch (err: any) {
-      setLeaving(false);
       Alert.alert('Lỗi', err.message || 'Không rời được nhóm');
+    } finally {
+      setLeaving(false);
     }
   };
 
