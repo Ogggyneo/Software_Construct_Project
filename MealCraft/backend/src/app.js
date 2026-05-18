@@ -12,6 +12,21 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.get('/stats', async (_req, res) => {
+  try {
+    const Recipe = require('./models/Recipe');
+    const stats = await Recipe.aggregate([
+      { $match: { is_public: true } },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]);
+    const total = stats.reduce((s, r) => s + r.count, 0);
+    res.json({ total, byCategory: stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/api/auth',    require('./routes/auth'));
 app.use('/api/recipes', require('./routes/recipe'));
 app.use('/api/group',   require('./routes/group'));
