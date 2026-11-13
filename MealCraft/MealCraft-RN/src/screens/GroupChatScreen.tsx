@@ -170,11 +170,25 @@ export function GroupChatScreen() {
     if (!token) return;
     setLeaving(true);
     try {
-      await apiFetch(`/api/group/${groupId}/leave`, token, { method: 'DELETE' });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      await apiFetch(`/api/group/${groupId}/leave`, token, {
+        method: 'DELETE',
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
       navigation.navigate('OrderFood');
     } catch (err: any) {
+      const msg = err.name === 'AbortError'
+        ? 'Kết nối quá chậm, thử lại sau'
+        : (err.message || 'Không rời được nhóm');
+      if (Platform.OS === 'web') {
+        (globalThis as any).alert?.(msg);
+      } else {
+        Alert.alert('Lỗi', msg);
+      }
+    } finally {
       setLeaving(false);
-      Alert.alert('Lỗi', err.message || 'Không rời được nhóm');
     }
   };
 
@@ -309,10 +323,14 @@ export function GroupChatScreen() {
             <TouchableOpacity
               style={s.leaveBtn}
               onPress={() => {
-                Alert.alert('Rời nhóm', `Bạn muốn rời khỏi "${groupName}"?`, [
-                  { text: 'Huỷ', style: 'cancel' },
-                  { text: 'Rời nhóm', style: 'destructive', onPress: leaveGroup },
-                ]);
+                if (Platform.OS === 'web') {
+                  if ((globalThis as any).confirm?.(`Bạn muốn rời khỏi "${groupName}"?`)) leaveGroup();
+                } else {
+                  Alert.alert('Rời nhóm', `Bạn muốn rời khỏi "${groupName}"?`, [
+                    { text: 'Huỷ', style: 'cancel' },
+                    { text: 'Rời nhóm', style: 'destructive', onPress: leaveGroup },
+                  ]);
+                }
               }}
               disabled={leaving}
             >

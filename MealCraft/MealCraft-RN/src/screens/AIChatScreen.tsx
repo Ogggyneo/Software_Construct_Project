@@ -52,11 +52,12 @@ export function AIChatScreen() {
       setMessages(prev => [...prev, { role: 'model', text: data.reply }]);
     } catch (err: any) {
       const reason = err?.message || '';
+      console.error('[AI Chat] error:', reason);
       const display = reason.includes('not configured')
         ? 'Chatbot chưa được cấu hình API key.'
         : reason.includes('429')
         ? 'Mình đang bận quá, thử lại sau nhé!'
-        : 'Mình đang gặp sự cố kết nối. Thử lại sau nhé!';
+        : `Mình đang gặp sự cố kết nối. Thử lại sau nhé!\n(${reason || 'unknown error'})`;
       setMessages(prev => [...prev, { role: 'model', text: display }]);
     } finally {
       setLoading(false);

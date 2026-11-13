@@ -17,6 +17,20 @@ function normalizeTitle(title) {
   return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
 }
 
+const TAG_MAP = {
+  'chinese':    'Trung Hoa',
+  'korean':     'Hàn Quốc',
+  'japanese':   'Nhật Bản',
+  'italian':    'Ý',
+  'thai':       'Thái Lan',
+  'vietnamese': 'Việt Nam',
+};
+
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags.map(t => TAG_MAP[t.toLowerCase().trim()] ?? t);
+}
+
 function classifyRecipe(title, tags) {
   const t = title.toLowerCase();                              // title only
   const combined = (title + ' ' + (tags || []).join(' ')).toLowerCase(); // title + tags
@@ -93,13 +107,20 @@ function classifyRecipe(title, tags) {
   if (/ăn vặt|snack|bánh tráng trộn/.test(combined))
     return { cuisine: 'Việt Nam', category: 'Đồ ăn vặt' };
 
-  return { cuisine: 'Việt Nam', category: 'Cơm & Mì' };
+  return { cuisine: 'Việt Nam', category: 'Chè & Tráng miệng' };
 }
 
 async function main() {
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/mealcraft';
   await mongoose.connect(uri);
   console.log('✅ Connected\n');
+
+  // Migrate: move all "Cơm & Mì" → "Chè & Tráng miệng" before reclassifying
+  const migrated = await Recipe.updateMany(
+    { category: 'Cơm & Mì' },
+    { $set: { category: 'Chè & Tráng miệng' } },
+  );
+  if (migrated.modifiedCount) console.log(`🔄 Migrated ${migrated.modifiedCount} "Cơm & Mì" → "Chè & Tráng miệng"\n`);
 
   const total = await Recipe.countDocuments({ is_public: true });
   console.log(`📋 ${total} public recipes to normalize\n`);
@@ -112,7 +133,7 @@ async function main() {
 
   while (skip < total) {
     const recipes = await Recipe.find({ is_public: true })
-      .select('title tags cuisine ingredients')
+      .select('title tags cuisine ingredients')  // tags needed for normalizeTags
       .skip(skip)
       .limit(BATCH)
       .lean();
@@ -136,6 +157,7 @@ async function main() {
               title: normalizeTitle(r.title),
               cuisine,
               category,
+              tags: normalizeTags(r.tags),
               ingredients: (r.ingredients || []).map(ing => ({
                 ...ing,
                 name: (ing.name || '').trim().toLowerCase(),

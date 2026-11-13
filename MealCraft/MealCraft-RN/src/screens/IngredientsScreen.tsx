@@ -104,9 +104,14 @@ export function IngredientsScreen() {
   };
 
   const goToMeal = (recipe: MatchedRecipe) => {
-    navigation.navigate('Home', {
-      screen: 'MealDetail',
-      params: { recipeId: recipe._id, title: recipe.title, image_url: recipe.image_url, cook_time_min: recipe.cook_time_min, calories_per_serving: recipe.calories_per_serving, category: recipe.category, tags: [] },
+    navigation.navigate('MealDetail', {
+      recipeId: recipe._id,
+      title: recipe.title,
+      image_url: recipe.image_url,
+      cook_time_min: recipe.cook_time_min,
+      calories_per_serving: recipe.calories_per_serving,
+      category: recipe.category,
+      tags: [],
     });
   };
 

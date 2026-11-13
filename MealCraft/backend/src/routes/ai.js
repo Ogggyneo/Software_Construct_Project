@@ -140,8 +140,8 @@ async function buildRestaurantContext(message) {
 function buildProfileContext(profile) {
   if (!profile) return '';
   const lines = [];
-  if (profile.name)        lines.push(`- Tên: ${profile.name}`);
-  if (profile.location)    lines.push(`- Khu vực: ${profile.location}`);
+  if (profile.name) lines.push(`- Tên: ${profile.name}`);
+  if (profile.location) lines.push(`- Khu vực: ${profile.location}`);
   if (profile.cookingLevel) {
     const lvl = { beginner: 'Mới bắt đầu', 'home-cook': 'Nấu cơ bản', advanced: 'Thành thạo' };
     lines.push(`- Trình độ nấu ăn: ${lvl[profile.cookingLevel] || profile.cookingLevel}`);
@@ -178,7 +178,6 @@ router.post('/chat', authMiddleware, async (req, res) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      tools: [{ googleSearch: {} }],
     });
 
     let restaurantContext = '';
@@ -207,7 +206,7 @@ router.post('/chat', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     const msg = err.message || '';
-    console.error('Gemini error:', msg);
+    console.error('Gemini error:', err);
     if (msg.includes('429') || msg.includes('Too Many Requests')) {
       return res.status(429).json({ message: 'Đang bận, thử lại sau vài giây nhé!' });
     }
